@@ -1,0 +1,21 @@
+{
+  "name": "formbar-boilerplate",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js",
+    "init-db": "node scripts/init-db.js"
+  },
+  "dependencies": {
+    "connect-sqlite3": "^0.9.16",
+    "dotenv": "^17.2.3",
+    "ejs": "^3.1.10",
+    "express": "^5.1.0",
+    "express-session": "^1.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "socket.io-client": "^4.8.1",
+    "sqlite3": "^5.1.7"
+  }
+}
