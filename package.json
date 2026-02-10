@@ -1,12 +1,11 @@
 {
-  "name": "formbar-boilerplate",
+  "name": "bullet-hell-game",
   "version": "1.0.0",
-  "description": "",
+  "description": "A simple bullet hell game",
   "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js",
-    "init-db": "node scripts/init-db.js"
+    "start": "node app.js",
+    "dev": "nodemon app.js"
   },
   "dependencies": {
     "connect-sqlite3": "^0.9.16",
@@ -15,7 +14,11 @@
     "express": "^5.1.0",
     "express-session": "^1.18.2",
     "jsonwebtoken": "^9.0.2",
+    "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1",
     "sqlite3": "^5.1.7"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
   }
 }
