@@ -1,11 +1,189 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Formbar Boilerplate</title>
+    <title>Pixel Blitz</title>
+    <link rel="stylesheet" href="/style.css">
 </head>
+
+<audio id="backgroundMusic" loop preload="auto">
+    <source src="music/Background.m4a" type="audio/mp4">
+</audio>
+<audio id="bossMusic" loop preload="auto">
+    <source src="music/Boss.m4a" type="audio/mp4">
+</audio>
+<audio id="enemyHit" loop preload="auto">
+    <source src="sfx/enemyHit.wav" type="audio/wav">
+</audio>
+<audio id="enemyShot" loop preload="auto">
+    <source src="sfx/enemyShot.wav" type="audio/wav">
+</audio>
+<audio id="playerHit" loop preload="auto">
+    <source src="sfx/playerHit.wav" type="audio/wav">
+</audio>
+<audio id="playerShot" loop preload="auto">
+    <source src="sfx/playerShot.wav" type="audio/wav">
+</audio>
+<audio id="railgunShot" loop preload="auto">
+    <source src="sfx/railgunShot.wav" type="audio/wav">
+</audio>
+<audio id="slasherDash" loop preload="auto">
+    <source src="sfx/slasherDash.wav" type="audio/wav">
+</audio>
+<audio id="playerDefeat" loop preload="auto">
+    <source src="sfx/playerDefeat.wav" type="audio/wav">
+</audio>
+<audio id="bossDefeat" loop preload="auto">
+    <source src="sfx/bossDefeat.wav" type="audio/wav">
+</audio>
+
 <body>
-    Hello, <%- user %>
+    <div id="gameContainer">
+        <canvas id="gameCanvas" width="1300" height="800"></canvas>
+
+        <!-- Game UI (always visible during gameplay) -->
+        <div id="gameUI">
+            <div id="wave">Wave: <span id="waveValue">1</span></div>
+            <div id="level">Level: <span id="levelValue">1</span></div>
+            <div id="exp">EXP: <span id="expValue">0</span>/<span id="expMaxValue">100</span></div>
+            <div id="health">Shield: <span id="healthValue">250</span>/<span id="healthMaxValue">250</span></div>
+            <div id="money">Digipogs: <span id="moneyValue">250</span>/<span id="moneyMaxValue">250</span></div>
+
+            <!-- Progress bars -->
+            <div class="progress-container">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="waveProgressFill"></div>
+                </div>
+                <span class="progress-label">Wave Progress</span>
+            </div>
+            <div class="progress-container">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="expProgressFill"></div>
+                </div>
+                <span class="progress-label">Experience</span>
+            </div>
+        </div>
+
+        <!-- Start Menu -->
+        <div id="startMenu" class="menu-overlay">
+            <div class="menu-panel">
+                <h1>Pixel Blitz</h1>
+                <p class="subtitle">Place towers to defend against waves of Blitzing Pixels.</p>
+                <% if (isAdmin) { %>
+                    <button id="adminPanelBtn" onclick="window.location.href='/admin'">Admin Panel</button>
+                    <% } %>
+
+                        <div class="menu-content">
+                            <!-- Left side: Player preview -->
+                            <div class="player-preview">
+                                <h3>Ship Customization</h3>
+                                <div id="playerPreview" class="preview-box">
+                                    <div id="playerSprite" class="player-sprite"></div>
+                                </div>
+                                <div class="customization-controls">
+                                    <button id="colorBtn" class="customize-btn">Change Color</button>
+                                    <button id="shapeBtn" class="customize-btn">Change Inner Design</button>
+                                </div>
+                                <p class="hint">Click preview or buttons to customize</p>
+                                <p class="preview-description">
+                                    <strong>Ship Color:</strong> <span id="colorName">Green</span><br>
+                                    <strong>Inner Design:</strong> <span id="shapeName">Triangle</span>
+                                </p>
+                            </div>
+
+                            <!-- Right side: Controls info -->
+                            <div class="control-list">
+                                <h3>How to Play</h3>
+                                <div class="control-list">
+                                    <div class="control-item">• Build towers to defend your base</div>
+                                    <div class="control-item">• Each enemy that reaches your base costs 1 life</div>
+                                    <div class="control-item">• Earn currency by defeating enemies</div>
+                                    <div class="control-item">• Upgrade towers to increase power</div>
+                                    <div class="control-item">• Survive waves and defeat bosses!</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button id="startBtn" class="primary-btn">START GAME</button>
+                        <p class="footer-text">Mouse to aim • Customize before starting</p>
+            </div>
+        </div>
+
+        <!-- Pause Menu -->
+        <div id="pauseMenu" class="menu-overlay hidden">
+            <div class="menu-panel">
+                <h1>PAUSED</h1>
+                <div class="menu-buttons">
+                    <button id="resumeBtn" class="primary-btn">RESUME</button>
+                    <button id="pauseRestartBtn" class="secondary-btn">RESTART</button>
+                    <button id="quitBtn" class="secondary-btn">QUIT TO MENU</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Level Up Menu -->
+        <div id="levelUpMenu" class="menu-overlay hidden">
+            <div class="menu-panel">
+                <h1 class="level-up-title">LEVEL UP!</h1>
+                <p class="level-up-subtitle">Choose an upgrade:</p>
+                <div id="upgradeOptions" class="upgrade-grid">
+                    <!-- Upgrade options populated by JavaScript -->
+                </div>
+                <p class="level-up-hint">Click an option or press 1, 2, or 3</p>
+            </div>
+        </div>
+
+        <!-- ADD THIS: Game Over Menu -->
+        <div id="gameOver" class="menu-overlay hidden">
+            <div class="menu-panel">
+                <h1 class="game-over-title">GAME OVER!</h1>
+                <div class="menu-buttons">
+                    <button id="restartBtn" class="primary-btn">PLAY AGAIN</button>
+                    <button id="mainMenuBtn" class="secondary-btn">MAIN MENU</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Load JavaScript files in the correct order -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/game/player.js"></script>
+    <script src="/game/enemy.js"></script>
+    <script src="/game/boss.js"></script>
+    <script src="/game/game.js"></script>
+    <script src="/game/main.js"></script>
+
+    <div class="payment-overlay" onclick="hidePayment()"></div>
+    <div class="payment-content">
+        <button onclick="hidePayment()" id="hide-payment">×</button>
+
+        <div class="card">
+            <h3 style="margin-top:0">Game Entry Payment</h3>
+            <div class="row">
+                <label class="small">PIN</label>
+                <div>
+                    <input id="pin" type="password" pattern="\d*" inputmode="numeric" maxlength="6"
+                        placeholder="Enter your PIN" oninput="this.value = this.value.replace(/[^0-9]/g,'');">
+                </div>
+            </div>
+            <div class="row price-display">
+                <div class="price-content">
+                    <span class="price-label">Game Entry Cost:</span>
+                    <span class="price-amount" id="price">
+                        <%= gamePrice %> Digipogs
+                    </span>
+                </div>
+            </div>
+            <div class="actions">
+                <button class="primary" onclick="doTransfer();">Pay & Play</button>
+            </div>
+        </div>
+    </div>
+
+    </div>
 </body>
+
 </html>
