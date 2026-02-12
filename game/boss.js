@@ -1,6 +1,6 @@
 //Constants
-const gameWidth = 800;
-const gameHeight = 600;
+const gameWidth = 1300;
+const gameHeight = 800;
 
 // Boss Classes
 class Blaster {

@@ -4,14 +4,66 @@ class Enemy {
         this.y = y;
         this.width = 30;
         this.height = 30;
-        this.speed = 0.1 * multiplier;
+        this.speed = 1 * multiplier;
         this.hp = Math.ceil(1 * multiplier);
         this.contactDamage = Math.ceil(1 * multiplier);
     }
 
     update(deltaTime) {
-        this.y += this.speed * deltaTime;
+        this.followPath(deltaTime);
     }
+
+    // Add to each enemy class
+    setPath(waypoints) {
+        this.path = waypoints;
+        this.currentWaypoint = 1; // Start heading to waypoint 1 (0 is spawn)
+        this.pathProgress = 0;
+    }
+
+    // Update their movement logic to follow path instead of straight down
+    followPath(deltaTime) {
+        if (!this.path || this.currentWaypoint >= this.path.length) {
+            // No path or reached end, move toward base
+            const baseCenterX = 650;
+            const baseCenterY = 400;
+            const enemyCenterX = this.x + this.width / 2;
+            const enemyCenterY = this.y + this.height / 2;
+
+            const dx = baseCenterX - enemyCenterX;
+            const dy = baseCenterY - enemyCenterY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance > 0) {
+                this.x += (dx / distance) * this.speed * deltaTime / 16;
+                this.y += (dy / distance) * this.speed * deltaTime / 16;
+            }
+            return;
+        }
+
+        // Move toward current waypoint (keep enemy center on path)
+        const target = this.path[this.currentWaypoint];
+        const enemyCenterX = this.x + this.width / 2;
+        const enemyCenterY = this.y + this.height / 2;
+
+        const dx = target.x - enemyCenterX;
+        const dy = target.y - enemyCenterY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance < 10) {
+            // Reached waypoint, move to next
+            this.currentWaypoint++;
+        } else {
+            // Move toward waypoint (this moves the enemy's top-left corner)
+            this.x += (dx / distance) * this.speed * deltaTime / 16;
+            this.y += (dy / distance) * this.speed * deltaTime / 16;
+        }
+    }
+
+
+    takeDamage(damage = 1) {
+        this.hp -= damage;
+    }
+
 
     render(ctx) {
         ctx.fillStyle = '#ff4444';
@@ -30,40 +82,66 @@ class Shooter {
         this.y = y;
         this.width = 30;
         this.height = 30;
-        this.speed = 0.08 * multiplier;
+        this.speed = 0.8 * multiplier;
         this.hp = Math.ceil(1 * multiplier);
-        this.shootCooldown = Math.max(800, 1500 / multiplier);
-        this.lastShootTime = 0;
         this.contactDamage = Math.ceil(2 * multiplier);
-        this.game = game
     }
 
-    update(deltaTime, bullets, player, damageMultiplier = 1) {
-        this.y += this.speed * deltaTime;
+    // Add to each enemy class
+    setPath(waypoints) {
+        this.path = waypoints;
+        this.currentWaypoint = 1; // Start heading to waypoint 1 (0 is spawn)
+        this.pathProgress = 0;
+    }
 
-        this.lastShootTime += deltaTime;
-        if (this.lastShootTime >= this.shootCooldown) {
-            this.shoot(bullets, player, damageMultiplier);
-            this.lastShootTime = 0;
+    update(deltaTime) {
+        this.followPath(deltaTime);
+    }
+
+    // Update their movement logic to follow path instead of straight down
+    followPath(deltaTime) {
+        if (!this.path || this.currentWaypoint >= this.path.length) {
+            // No path or reached end, move toward base
+            const baseCenterX = 650;
+            const baseCenterY = 400;
+            const enemyCenterX = this.x + this.width / 2;
+            const enemyCenterY = this.y + this.height / 2;
+
+            const dx = baseCenterX - enemyCenterX;
+            const dy = baseCenterY - enemyCenterY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance > 0) {
+                this.x += (dx / distance) * this.speed * deltaTime / 16;
+                this.y += (dy / distance) * this.speed * deltaTime / 16;
+            }
+            return;
+        }
+
+        // Move toward current waypoint (keep enemy center on path)
+        const target = this.path[this.currentWaypoint];
+        const enemyCenterX = this.x + this.width / 2;
+        const enemyCenterY = this.y + this.height / 2;
+
+        const dx = target.x - enemyCenterX;
+        const dy = target.y - enemyCenterY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance < 10) {
+            // Reached waypoint, move to next
+            this.currentWaypoint++;
+        } else {
+            // Move toward waypoint (this moves the enemy's top-left corner)
+            this.x += (dx / distance) * this.speed * deltaTime / 16;
+            this.y += (dy / distance) * this.speed * deltaTime / 16;
         }
     }
 
-    shoot(bullets, player, damageMultiplier = 1) {
-        const dx = player.x + player.width / 2 - (this.x + this.width / 2);
-        const dy = player.y + player.height / 2 - (this.y + this.height / 2);
-        const distance = Math.sqrt(dx * dx + dy * dy);
 
-        const speed = 0.25;
-        const bulletVx = (dx / distance) * speed;
-        const bulletVy = (dy / distance) * speed;
-
-        const bullet = new Bullet(this.x + this.width / 2, this.y + this.height, false);
-        bullet.vx = bulletVx;
-        bullet.vy = bulletVy;
-        bullet.damage = Math.ceil((this.contactDamage || 1) * damageMultiplier);
-        bullets.push(bullet);
-        this.game.playSound('enemyShot')
+    takeDamage(damage = 1) {
+        this.hp -= damage;
     }
+
 
     render(ctx) {
         ctx.fillStyle = '#4444ff';
@@ -82,50 +160,64 @@ class Tank {
         this.y = y;
         this.width = 50;
         this.height = 40;
-        this.speed = 0.03 * multiplier;
+        this.speed = 0.3 * multiplier;
         this.hp = Math.ceil(5 * multiplier);
         this.maxHp = Math.ceil(this.hp * multiplier);
         this.contactDamage = Math.ceil(2 * multiplier);
-        this.shootCooldown = Math.max(1000, 2000 / multiplier);
-        this.lastShootTime = 0;
-        this.movementPattern = Math.random() > 0.5 ? 1 : -1;
-        this.game = game
     }
 
-    update(deltaTime, bullets, player, damageMultiplier = 1) {
-        this.y += this.speed * deltaTime;
-        this.x += this.movementPattern * 0.02 * deltaTime;
+    update(deltaTime) {
+        this.followPath(deltaTime);
+    }
 
-        if (this.x <= 0 || this.x >= 800 - this.width) {
-            this.movementPattern *= -1;
+
+    // Add to each enemy class
+    setPath(waypoints) {
+        this.path = waypoints;
+        this.currentWaypoint = 1; // Start heading to waypoint 1 (0 is spawn)
+        this.pathProgress = 0;
+    }
+
+    // Update their movement logic to follow path instead of straight down
+    followPath(deltaTime) {
+        if (!this.path || this.currentWaypoint >= this.path.length) {
+            // No path or reached end, move toward base
+            const baseCenterX = 650;
+            const baseCenterY = 400;
+            const enemyCenterX = this.x + this.width / 2;
+            const enemyCenterY = this.y + this.height / 2;
+
+            const dx = baseCenterX - enemyCenterX;
+            const dy = baseCenterY - enemyCenterY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance > 0) {
+                this.x += (dx / distance) * this.speed * deltaTime / 16;
+                this.y += (dy / distance) * this.speed * deltaTime / 16;
+            }
+            return;
         }
 
-        this.lastShootTime += deltaTime;
-        if (this.lastShootTime >= this.shootCooldown) {
-            this.shoot(bullets, player, damageMultiplier);
-            this.lastShootTime = 0;
+        // Move toward current waypoint (keep enemy center on path)
+        const target = this.path[this.currentWaypoint];
+        const enemyCenterX = this.x + this.width / 2;
+        const enemyCenterY = this.y + this.height / 2;
+
+        const dx = target.x - enemyCenterX;
+        const dy = target.y - enemyCenterY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance < 10) {
+            // Reached waypoint, move to next
+            this.currentWaypoint++;
+        } else {
+            // Move toward waypoint (this moves the enemy's top-left corner)
+            this.x += (dx / distance) * this.speed * deltaTime / 16;
+            this.y += (dy / distance) * this.speed * deltaTime / 16;
         }
     }
 
-    shoot(bullets, player, damageMultiplier = 1) {
-        for (let i = -1; i <= 1; i++) {
-            const dx = (player.x + player.width / 2) - (this.x + this.width / 2);
-            const dy = (player.y + player.height / 2) - (this.y + this.height / 2);
-            const distance = Math.sqrt(dx * dx + dy * dy) || 1;
 
-            const speed = 0.2;
-            const spread = i * 0.3;
-            const bulletVx = ((dx / distance) * speed) + spread;
-            const bulletVy = (dy / distance) * speed;
-
-            const bullet = new Bullet(this.x + this.width / 2, this.y + this.height, false);
-            bullet.vx = bulletVx;
-            bullet.vy = bulletVy;
-            bullet.damage = Math.ceil((this.contactDamage || 1) * damageMultiplier);
-            bullets.push(bullet);
-            this.game.playSound('enemyShot')
-        }
-    }
 
     takeDamage(damage = 1) {
         this.hp -= damage;
@@ -159,59 +251,65 @@ class Sprinter {
         this.y = y;
         this.width = 25;
         this.height = 25;
-        this.speed = 0.4 * multiplier;
+        this.speed = 4 * multiplier;
         this.hp = Math.ceil(1 * multiplier);
         this.maxHp = Math.ceil(1 * multiplier);
         this.contactDamage = Math.ceil(1 * multiplier);
-        this.dashTimer = 0;
-        this.dashCooldown = Math.max(2000, 3000 / multiplier);
-        this.isDashing = false;
-        this.dashDuration = 500;
-        this.targetX = x;
+
     }
 
-    update(deltaTime, player) {
-        this.dashTimer += deltaTime;
+    update(deltaTime) {
+        this.followPath(deltaTime);
+    }
 
-        if (!this.isDashing) {
-            // Normal movement downward
-            this.y += this.speed * deltaTime;
+    // Add to each enemy class
+    setPath(waypoints) {
+        this.path = waypoints;
+        this.currentWaypoint = 1; // Start heading to waypoint 1 (0 is spawn)
+        this.pathProgress = 0;
+    }
 
-            // Slight horizontal tracking toward player
-            const dx = (player.x + player.width / 2) - (this.x + this.width / 2);
-            if (Math.abs(dx) > 5) {
-                this.x += Math.sign(dx) * 0.1 * deltaTime;
+    // Update their movement logic to follow path instead of straight down
+    followPath(deltaTime) {
+        if (!this.path || this.currentWaypoint >= this.path.length) {
+            // No path or reached end, move toward base
+            const baseCenterX = 650;
+            const baseCenterY = 400;
+            const enemyCenterX = this.x + this.width / 2;
+            const enemyCenterY = this.y + this.height / 2;
+
+            const dx = baseCenterX - enemyCenterX;
+            const dy = baseCenterY - enemyCenterY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance > 0) {
+                this.x += (dx / distance) * this.speed * deltaTime / 16;
+                this.y += (dy / distance) * this.speed * deltaTime / 16;
             }
-
-            // Start a dash when cooldown elapsed
-            if (this.dashTimer >= this.dashCooldown) {
-                this.startDash(player);
-            }
-        } else {
-            // Dash movement: faster downward and quickly approach target X
-            this.y += this.speed * 3 * deltaTime;
-
-            const dx = this.targetX - this.x;
-            if (Math.abs(dx) > 2) {
-                this.x += Math.sign(dx) * 0.5 * deltaTime;
-            }
-
-            // End dash after dashDuration
-            if (this.dashTimer >= this.dashCooldown + this.dashDuration) {
-                this.isDashing = false;
-                this.dashTimer = 0;
-            }
+            return;
         }
 
-        // Keep inside bounds
-        this.x = Math.max(0, Math.min(800 - this.width, this.x));
+        // Move toward current waypoint (keep enemy center on path)
+        const target = this.path[this.currentWaypoint];
+        const enemyCenterX = this.x + this.width / 2;
+        const enemyCenterY = this.y + this.height / 2;
+
+        const dx = target.x - enemyCenterX;
+        const dy = target.y - enemyCenterY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance < 10) {
+            // Reached waypoint, move to next
+            this.currentWaypoint++;
+        } else {
+            // Move toward waypoint (this moves the enemy's top-left corner)
+            this.x += (dx / distance) * this.speed * deltaTime / 16;
+            this.y += (dy / distance) * this.speed * deltaTime / 16;
+        }
     }
 
-    startDash(player) {
-        this.isDashing = true;
-        this.targetX = player.x + player.width / 2 - this.width / 2;
-        this.targetX = Math.max(0, Math.min(800 - this.width, this.targetX));
-    }
+
+
 
     takeDamage(damage = 1) {
         this.hp -= damage;

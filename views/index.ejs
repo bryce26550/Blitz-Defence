@@ -4,15 +4,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pixel Blitz</title>
+    <title>Blitz Defence</title>
     <link rel="stylesheet" href="/style.css">
 </head>
 
 <audio id="backgroundMusic" loop preload="auto">
     <source src="music/Background.m4a" type="audio/mp4">
-</audio>
-<audio id="bossMusic" loop preload="auto">
-    <source src="music/Boss.m4a" type="audio/mp4">
 </audio>
 <audio id="enemyHit" loop preload="auto">
     <source src="sfx/enemyHit.wav" type="audio/wav">
@@ -46,30 +43,30 @@
         <!-- Game UI (always visible during gameplay) -->
         <div id="gameUI">
             <div id="wave">Wave: <span id="waveValue">1</span></div>
-            <div id="level">Level: <span id="levelValue">1</span></div>
-            <div id="exp">EXP: <span id="expValue">0</span>/<span id="expMaxValue">100</span></div>
+            <!-- <div id="level">Level: <span id="levelValue">1</span></div>
+            <div id="exp">EXP: <span id="expValue">0</span>/<span id="expMaxValue">100</span></div> -->
             <div id="health">Shield: <span id="healthValue">250</span>/<span id="healthMaxValue">250</span></div>
             <div id="money">Digipogs: <span id="moneyValue">250</span>/<span id="moneyMaxValue">250</span></div>
 
             <!-- Progress bars -->
-            <div class="progress-container">
+            <!-- <div class="progress-container">
                 <div class="progress-bar">
                     <div class="progress-fill" id="waveProgressFill"></div>
                 </div>
                 <span class="progress-label">Wave Progress</span>
-            </div>
-            <div class="progress-container">
+            </div> -->
+            <!-- <div class="progress-container">
                 <div class="progress-bar">
                     <div class="progress-fill" id="expProgressFill"></div>
                 </div>
                 <span class="progress-label">Experience</span>
-            </div>
+            </div> -->
         </div>
 
         <!-- Start Menu -->
         <div id="startMenu" class="menu-overlay">
             <div class="menu-panel">
-                <h1>Pixel Blitz</h1>
+                <h1>Blitz Defence</h1>
                 <p class="subtitle">Place towers to defend against waves of Blitzing Pixels.</p>
                 <% if (isAdmin) { %>
                     <button id="adminPanelBtn" onclick="window.location.href='/admin'">Admin Panel</button>
@@ -102,6 +99,7 @@
                                     <div class="control-item">• Earn currency by defeating enemies</div>
                                     <div class="control-item">• Upgrade towers to increase power</div>
                                     <div class="control-item">• Survive waves and defeat bosses!</div>
+                                    <button id="mapBtn" class="customize-btn">Change Map</button>
                                 </div>
                             </div>
                         </div>
@@ -154,6 +152,9 @@
     <script src="/game/enemy.js"></script>
     <script src="/game/boss.js"></script>
     <script src="/game/game.js"></script>
+    <script src="/game/maps.js"></script>
+    <script src="/game/towers.js"></script>
+    <script src="/game/waves.js"></script>
     <script src="/game/main.js"></script>
 
     <div class="payment-overlay" onclick="hidePayment()"></div>
