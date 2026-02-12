@@ -99,12 +99,6 @@ class Game {
         this.availableBosses = [Blaster, Slasher, Sentinel, Railgun, Overlord]; // Add Blaster, Slasher, Sentinel, Railgun, Overlord for all bosses to be available
         this.particles = [];
 
-        // Pre-boss wave system
-        this.preBossActive = false;
-        this.preBossTimer = 0;
-        this.preBossDuration = 5000; // 5 seconds
-        this.preBossMessage = '';
-
         this.exp = 0;
         this.level = 1;
         this.expToNextLevel = 100;
@@ -146,20 +140,31 @@ class Game {
         // Start background music
         this.startBackgroundMusic()
 
+        // Wave system
+        this.waveManager = new WaveManager();
+        this.currentWave = [];
+        this.currentWaveIndex = 0;
+        this.waveComplete = false;
+        this.spawnTimer = 0;
+        this.spawnDelay = 250; // 0.25 seconds in milliseconds
+
+        // Multi-track spawning modes
+        this.multiTrackMode = 'perWave'; // 'perEnemy', 'perWave', or 'single'
+        this.currentTrackIndex = 0; // For rotating tracks
+        this.waveTrackIndex = 0; // For wave-based track selection
+
+        this.keys = {};
+        this.lastTime = 0;
         this.waveNumber = 1;
-        this.waveProgress = 0;
-        this.waveRequirement = 300;
         this.waveStartTime = Date.now();
         this.globalEnemyMultiplier = 1;
         this.enemyDamageMultiplier = 1;
 
-        this.keys = {};
-        this.lastTime = 0;
-        this.enemySpawnTimer = 0;
-        this.shooterSpawnTimer = 0;
-        this.tankSpawnTimer = 0;
-        this.sprinterSpawnTimer = 0;
-        this.bossSpawnedThisWave = false;
+        // Enemy tracking
+        this.totalEnemiesInWave = 0;
+        this.enemiesSpawned = 0;
+        this.enemiesAlive = 0;
+
 
         // UI hit rects for canvas interactions
         this.uiRects = {
@@ -170,6 +175,9 @@ class Game {
             upgradeOptions: [],
             pause: { resumeButton: null, restartButton: null }
         };
+
+        // Map management
+        this.mapManager = new MapManager(this.width, this.height);
 
         this.renderer = new GameRenderer(this);
 
@@ -393,11 +401,6 @@ class Game {
             if (element) element.textContent = value;
         }
 
-        // Update progress bars
-        const waveProgress = (this.waveProgress / this.waveRequirement) * 100;
-        const waveProgressFill = document.getElementById('waveProgressFill');
-        if (waveProgressFill) waveProgressFill.style.width = waveProgress + '%';
-
         const expProgress = (this.exp / this.expToNextLevel) * 100;
         const expProgressFill = document.getElementById('expProgressFill');
         if (expProgressFill) expProgressFill.style.width = expProgress + '%';
@@ -544,6 +547,15 @@ class Game {
             });
         }
 
+        const mapBtn = document.getElementById('mapBtn');
+        if (mapBtn) {
+            mapBtn.addEventListener('click', () => {
+                this.mapManager.cycleMap();
+                this.updateMultiTrackMode(); // Update spawning mode based on new map
+            });
+        }
+
+
         // Player preview click
         const playerPreview = document.getElementById('playerPreview');
         if (playerPreview) {
@@ -643,16 +655,10 @@ class Game {
         if (!this.started) return;
         if (!this.gameRunning || this.gamePaused) return;
 
-        if (this.preBossActive) {
-            this.player.update(this.keys, deltaTime);
-            this.updatePreBossSequence(deltaTime);
-            return;
-        }
-
         this.player.update(this.keys, deltaTime);
 
         // Spawn enemies
-        // this.spawnEnemies(deltaTime);
+        this.spawnEnemies(deltaTime);
 
         // Update all entities
         this.updateEntities(deltaTime);
@@ -673,71 +679,103 @@ class Game {
         return (this.waveNumber - 5) % 10 === 0 && this.waveNumber >= 5;
     }
 
+
+    setMultiTrackMode(mode) {
+        this.multiTrackMode = mode; // 'perEnemy', 'perWave', or 'single'
+        console.log('Multi-track mode set to:', mode);
+    }
+
+    updateMultiTrackMode() {
+        const newMode = this.mapManager.getTrackMode();
+        if (newMode !== this.multiTrackMode) {
+            this.multiTrackMode = newMode;
+            console.log(`Map changed: Multi-track mode set to ${newMode}`);
+
+            // Reset track indices when mode changes
+            this.currentTrackIndex = 0;
+            this.waveTrackIndex = 0;
+        }
+    }
+
+
     spawnEnemies(deltaTime) {
-        const baseSpawnRate = Math.max(300, 1200 - (this.waveNumber * 50));
-
-        if (this.isBossWave()) {
-            // Only spawn the boss
-            if ((this.waveNumber - 5) % 10 === 0 && this.waveNumber >= 5 && !this.bossSpawnedThisWave) {
-                this.bosses.push(this.getRandomBoss());
-                this.bossSpawnedThisWave = true;
-            }
-            return; // Exit early - no regular enemies on boss waves
+        // Load new wave if current is complete
+        if (this.waveComplete || this.currentWave.length === 0) {
+            this.loadNewWave();
         }
 
-        this.enemySpawnTimer += deltaTime;
-        if (this.enemySpawnTimer > baseSpawnRate) {
-            this.enemies.push(new Enemy(Math.random() * (this.width - 40), -40, this.globalEnemyMultiplier, this));
-            this.enemySpawnTimer = 0;
-        }
-
-        this.shooterSpawnTimer += deltaTime;
-        if (this.shooterSpawnTimer > 6000) {
-            this.shooters.push(new Shooter(Math.random() * (this.width - 40), -40, this.globalEnemyMultiplier, this));
-            this.shooterSpawnTimer = 0;
-        }
-
-        this.tankSpawnTimer += deltaTime;
-        if (this.tankSpawnTimer > 10000 && this.waveNumber >= 2) {
-            this.tanks.push(new Tank(Math.random() * (this.width - 50), -50, this.globalEnemyMultiplier, this));
-            this.tankSpawnTimer = 0;
-        }
-
-        this.sprinterSpawnTimer += deltaTime;
-        if (this.sprinterSpawnTimer > 8000 && this.waveNumber >= 3) {
-            this.sprinters.push(new Sprinter(Math.random() * (this.width - 40), -40, this.globalEnemyMultiplier, this));
-            this.sprinterSpawnTimer = 0;
+        // Spawn enemies with timing
+        this.spawnTimer += deltaTime;
+        if (this.spawnTimer >= this.spawnDelay && this.enemiesSpawned < this.currentWave.length) {
+            this.spawnNextEnemy();
+            this.spawnTimer = 0;
         }
     }
 
-    startPreBossSequence(nextWaveNumber) {
-        console.log(`starting pre-boss sequence for wave ${nextWaveNumber}`);
+    loadNewWave() {
+        console.log(`Loading wave ${this.waveNumber}`);
 
-        this.preBossActive = true;
-        this.preBossTimer = 0;
-        this.preBossMessage = `BOSS WAVE ${nextWaveNumber} INCOMING!`;
+        this.currentWave = this.waveManager.getWave(this.waveNumber);
+        this.currentWaveIndex = 0;
+        this.enemiesSpawned = 0;
+        this.totalEnemiesInWave = this.currentWave.length;
+        this.waveComplete = false;
 
-        this.switchToBossMusic();
-
-        this.clearAllEnemies();
-
-        this.pendingWaveNumber = nextWaveNumber;
+        // Reset wave track index for per-wave mode
+        if (this.multiTrackMode === 'perWave') {
+            const availablePaths = this.mapManager.getAvailablePaths();
+            this.waveTrackIndex = (this.waveTrackIndex + 1) % availablePaths.length;
+        }
     }
 
-    switchToBossMusic() {
-        if (this.currentMusic === this.bossMusic) return; // Already playing boss music
+    spawnNextEnemy() {
+        if (this.enemiesSpawned >= this.currentWave.length) return;
 
-        if (this.currentMusic) {
-            this.fadeOut(this.currentMusic);
-            // Wait for fade out to complete, then start boss music
-            setTimeout(() => {
-                this.currentMusic = this.bossMusic;
-                this.fadeIn(this.bossMusic);
-            }, 1000); // 1 second delay to match fade out time
+        const EnemyClass = this.currentWave[this.enemiesSpawned];
+        const availablePaths = this.mapManager.getAvailablePaths();
+
+        // Determine which path to use
+        let pathName;
+        if (this.multiTrackMode === 'perEnemy') {
+            // Rotate path for each enemy
+            pathName = availablePaths[this.currentTrackIndex % availablePaths.length];
+            this.currentTrackIndex++;
+        } else if (this.multiTrackMode === 'perWave') {
+            // Same path for entire wave
+            pathName = availablePaths[this.waveTrackIndex % availablePaths.length];
         } else {
-            this.currentMusic = this.bossMusic;
-            this.fadeIn(this.bossMusic);
+            // Single path mode - use first available
+            pathName = availablePaths[0];
         }
+
+        // Get spawn position and path
+        const spawnPos = this.mapManager.getSpawnPosition(pathName);
+        const pathWaypoints = this.mapManager.getPathWaypoints(pathName);
+
+        // Create enemy with path
+        const enemy = new EnemyClass(spawnPos.x, spawnPos.y, this.globalEnemyMultiplier, this);
+
+        // Center enemy on path
+        enemy.x = spawnPos.x - enemy.width / 2;
+        enemy.y = spawnPos.y - enemy.height / 2;
+
+        enemy.setPath(pathWaypoints);
+
+        // Add to appropriate array
+        if (EnemyClass === Enemy) {
+            this.enemies.push(enemy);
+        } else if (EnemyClass === Shooter) {
+            this.shooters.push(enemy);
+        } else if (EnemyClass === Tank) {
+            this.tanks.push(enemy);
+        } else if (EnemyClass === Sprinter) {
+            this.sprinters.push(enemy);
+        }
+
+        this.enemiesSpawned++;
+        this.enemiesAlive++;
+
+        console.log(`Spawned ${EnemyClass.name} on ${pathName} path (${this.enemiesSpawned}/${this.totalEnemiesInWave})`);
     }
 
 
@@ -755,69 +793,45 @@ class Game {
         this.bullets = [];
     }
 
-    updatePreBossSequence(deltaTime) {
-        this.preBossTimer += deltaTime;
-
-        const timeRemaining = Math.ceil((this.preBossDuration - this.preBossTimer) / 1000);
-        this.preBossMessage = `BOSS WAVE ${this.pendingWaveNumber} IN ${timeRemaining}...`;
-
-        if (this.preBossTimer >= this.preBossDuration) {
-            this.endPreBossSequence();
-        }
-    }
-
-    endPreBossSequence() {
-        console.log('Pre-Boss sequence complete, starting boss wave');
-
-        this.preBossActive = false;
-        this.preBossTimer = 0;
-        this.preBossMessage = '';
-
-        this.waveNumber = this.pendingWaveNumber;
-        this.bossSpawnedThisWave = false;
-        this.waveProgress = 0;
-        this.waveStartTime = Date.now();
-    }
-
     async checkWaveProgress() {
-        if (this.waveProgress >= this.waveRequirement) {
-            if (this.waveProgress >= this.waveRequirement) {
-                const waveCompleteTime = Date.now() - this.waveStartTime;
+        // Count total living enemies
+        this.enemiesAlive = this.enemies.length + this.shooters.length +
+            this.tanks.length + this.sprinters.length + this.bosses.length;
 
-                // Report to server for validation
-                const result = await post('/recordGameEvent', {
-                    eventType: 'WAVE_COMPLETE',
-                    data: {
-                        waveNumber: this.waveNumber,
-                        timeTaken: waveCompleteTime,
-                    }
-                });
+        // Check if wave is complete (all enemies spawned and defeated)
+        if (this.enemiesSpawned >= this.totalEnemiesInWave && this.enemiesAlive === 0) {
+            console.log(`Wave ${this.waveNumber} complete!`);
 
-                if (!result.ok) {
-                    console.error('Server rejected wave completion:', result.error);
-                    alert('Game session ended due to validation error');
-                    this.gameOver();
-                    return;
+            const waveCompleteTime = Date.now() - this.waveStartTime;
+
+            // Report to server for validation
+            const result = await post('/recordGameEvent', {
+                eventType: 'WAVE_COMPLETE',
+                data: {
+                    waveNumber: this.waveNumber,
+                    timeTaken: waveCompleteTime,
                 }
+            });
 
-                const nextWave = result.nextWave;
-                const isNextWaveBoss = (nextWave - 5) % 10 === 0 && nextWave >= 5;
-
-                if (isNextWaveBoss) {
-                    this.startPreBossSequence(nextWave);
-                } else {
-                    // Normal wave transition
-                    this.waveNumber = result.nextWave;
-                    this.bossSpawnedThisWave = false;
-                    this.waveProgress = 0;
-                    this.waveStartTime = Date.now();
-                }
-
-
-                console.log(`Wave completed. Server payout: ${result.totalPayout}`);
+            if (!result.ok) {
+                console.error('Server rejected wave completion:', result.error);
+                alert('Game session ended due to validation error');
+                this.gameOver();
+                return;
             }
+
+            const nextWave = result.nextWave;
+
+            // Normal wave transition
+            this.waveNumber = nextWave;
+            this.waveComplete = true;
+            this.waveStartTime = Date.now();
+
+
+            console.log(`Wave completed. Server payout: ${result.totalPayout}`);
         }
-    };
+    }
+
 
     checkLevelUp() {
         if (this.exp >= this.expToNextLevel && !this.showLevelUp) {
@@ -1164,10 +1178,6 @@ class Game {
                         this.createExplosion(enemy.x, enemy.y);
                         this.enemies.splice(j, 1);
 
-                        if (!enemy.minion) {
-                            this.waveProgress += 10;
-                        }
-
                         this.addExp(5);
                         if (this.player.lifeSteal && this.player.health < this.player.maxHealth) {
                             this.player.health++;
@@ -1192,9 +1202,6 @@ class Game {
                     if (shooter.hp <= 0) {
                         this.createExplosion(shooter.x, shooter.y);
                         this.shooters.splice(j, 1);
-                        if (!shooter.minion) {
-                            this.waveProgress += 25;
-                        }
                         this.addExp(12);
                         if (this.player.lifeSteal && this.player.health < this.player.maxHealth) {
                             this.player.health++;
@@ -1216,9 +1223,6 @@ class Game {
                         const tanks = this.tanks[j];
                         this.createExplosion(this.tanks[j].x, this.tanks[j].y);
                         this.tanks.splice(j, 1);
-                        if (!tanks.minion) {
-                            this.waveProgress += 50;
-                        }
                         this.addExp(25);
                         if (this.player.lifeSteal && this.player.health < this.player.maxHealth) {
                             this.player.health++;
@@ -1240,9 +1244,6 @@ class Game {
                         const sprinters = this.sprinters[j];
                         this.createExplosion(this.sprinters[j].x, this.sprinters[j].y);
                         this.sprinters.splice(j, 1);
-                        if (!sprinters.minion) {
-                            this.waveProgress += 75;
-                        }
                         this.addExp(35);
                         if (this.player.lifeSteal && this.player.health < this.player.maxHealth) {
                             this.player.health++;
@@ -1269,7 +1270,6 @@ class Game {
                         // Switch back to background music here!
                         this.switchToBackgroundMusic();
 
-                        this.waveProgress += this.waveRequirement;
                         this.addExp(500);
                         if (this.player.lifeSteal && this.player.health < this.player.maxHealth) {
                             this.player.health += 5;
@@ -1478,7 +1478,7 @@ class Game {
     }
 
     async gameOver() {
-        this.gameRunning = false;      
+        this.gameRunning = false;
         this.playSound('playerDefeat')
 
         // End server session and get final payout
@@ -1513,16 +1513,24 @@ class Game {
         this.level = 1;
         this.expToNextLevel = 100;
         this.waveNumber = 1;
-        this.waveProgress = 0;
         this.waveRequirement = 300;
         this.globalEnemyMultiplier = 1;
         this.enemyDamageMultiplier = 1;
-        this.bossSpawnedThisWave = false;
         this.showLevelUp = false;
         this.gamePaused = false;
         this.gamePausedReason = '';
         this.gameRunning = startImmediately;
         this.started = startImmediately || this.started;
+
+        // Reset wave system
+        this.currentWave = [];
+        this.currentWaveIndex = 0;
+        this.waveComplete = false;
+        this.spawnTimer = 0;
+        this.totalEnemiesInWave = 0;
+        this.enemiesSpawned = 0;
+        this.enemiesAlive = 0;
+        this.updateMultiTrackMode()
 
         // Create new player and restore customization
         this.player = new Player(this.width / 2, this.height - 50);
@@ -1538,6 +1546,12 @@ class Game {
         // Clear canvas
         this.ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
         this.ctx.fillRect(0, 0, this.width, this.height);
+
+
+        // Use MapManager for rendering paths and base
+        this.mapManager.renderPaths(this.ctx);
+        this.mapManager.renderBase(this.ctx);
+        this.mapManager.renderMapName(this.ctx);
 
         // Draw game objects
         this.player.render(this.ctx);
@@ -1568,46 +1582,11 @@ class Game {
         // Render particles last
         this.particles.forEach(particle => particle.render(this.ctx));
 
-        if (this.preBossActive) {
-            this.renderPreBossOverlay();
-        }
-
         // Update UI if game is running
         if (this.started && this.gameRunning) {
             this.updateGameUI();
         }
     }
-
-    renderPreBossOverlay() {
-        // Dark overlay
-        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        this.ctx.fillRect(0, 0, this.width, this.height);
-
-        // Warning message
-        this.ctx.fillStyle = '#ff0000';
-        this.ctx.font = '48px Arial';
-        this.ctx.textAlign = 'center';
-        this.ctx.fillText('DANGER!', this.width / 2, this.height / 2 - 60);
-
-        // Boss wave message
-        this.ctx.fillStyle = '#ffffff';
-        this.ctx.font = '32px Arial';
-        this.ctx.fillText(this.preBossMessage, this.width / 2, this.height / 2);
-
-        // Instructions
-        this.ctx.fillStyle = '#ffff00';
-        this.ctx.font = '24px Arial';
-        this.ctx.fillText('PREPARE FOR BATTLE!', this.width / 2, this.height / 2 + 60);
-
-        this.ctx.textAlign = 'left'; // Reset text alignment
-
-        // Screen shake effect
-        this.screenShake = { intensity: 10, duration: 1000, timer: 0 };
-
-        // Flash effect
-        this.flashEffect = { active: true, timer: 0, duration: 500 };
-    }
-
 
     gameLoop(currentTime = 0) {
         const deltaTime = currentTime - this.lastTime;

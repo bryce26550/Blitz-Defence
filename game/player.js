@@ -28,30 +28,9 @@ class Player {
         this.shapeIndex = 0; // 0: triangle, 1: circle, 2: square
     }
 
-    update(keys, deltaTime) {
-        // Movement
-        if (keys['ArrowLeft'] || keys['KeyA']) {
-            this.x = Math.max(0, this.x - this.speed * deltaTime);
-        }
-        if (keys['ArrowRight'] || keys['KeyD']) {
-            this.x = Math.min(800 - this.width, this.x + this.speed * deltaTime);
-        }
-        if (keys['ArrowUp'] || keys['KeyW']) {
-            this.y = Math.max(0, this.y - this.speed * deltaTime);
-        }
-        if (keys['ArrowDown'] || keys['KeyS']) {
-            this.y = Math.min(600 - this.height, this.y + this.speed * deltaTime);
-        }
-
+    update(deltaTime) {
         this.shootCooldown = Math.max(0, this.shootCooldown - deltaTime);
 
-        // Update invulnerability
-        if (this.invulnerable) {
-            this.invulnerabilityTimer -= deltaTime;
-            if (this.invulnerabilityTimer <= 0) {
-                this.invulnerable = false;
-            }
-        }
     }
 
     shoot(bullets, tx, ty) {
