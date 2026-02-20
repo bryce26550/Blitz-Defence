@@ -3,9 +3,9 @@ class WaveManager {
     constructor() {
         this.waves = {
             1: [Enemy, Enemy, Enemy, Enemy, Enemy, Enemy, Enemy, Enemy, Enemy, Enemy],
-            2: [Enemy, Enemy, Shooter, Shooter],
-            3: [Enemy, Sprinter, Tank, Shooter, Shooter],
-            4: [Tank, Tank, Tank, Sprinter, Shooter, Shooter],
+            2: [Enemy, Enemy, Enemy, Enemy, Sprinter, Enemy, Enemy, Enemy, Enemy, Sprinter, Enemy, Enemy, Enemy, Enemy, Sprinter],
+            3: [Enemy, Enemy, Sprinter, Tank, Enemy, Enemy, Sprinter, Tank, Enemy, Enemy, Sprinter, Tank, Enemy, Enemy, Sprinter, Tank],
+            4: [Tank, Tank, Enemy, Tank, Sprinter, Tank, Tank, Enemy, Tank, Sprinter, Tank, Tank, Enemy, Tank, Sprinter, Tank],
             // Add more waves as needed
         };
     }

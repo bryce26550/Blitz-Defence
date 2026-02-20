@@ -147,7 +147,7 @@ app.post('/payIn', isAuthenticated, (req, res) => {
 
         const data = {
             from: userId,
-            to: 1, // Replace with 17 when running official server
+            to: 1, // Replace with 46 when running official server
             amount: currentPrice,
             pin: parseInt(pin),
             reason: 'Game Entry Fee',
@@ -229,7 +229,6 @@ app.post('/startGameSession', isAuthenticated, (req, res) => {
         startTime: Date.now(),
         currentWave: 1,
         wavesCompleted: 0,
-        payoutEarned: 0,
         active: true,
         lastActivity: Date.now()
     };
@@ -296,83 +295,10 @@ function handleWaveComplete(gameSession, data, res) {
     gameSession.currentWave = waveNumber + 1;
     gameSession.wavesCompleted = waveNumber;
 
-    // Calculate payout SERVER-SIDE ONLY
-    if (waveNumber % 5 === 0) {
-        gameSession.payoutEarned += 3; // Server controls payout calculation
-        console.log(`Wave ${waveNumber} payout earned. Total: ${gameSession.payoutEarned}`);
-    }
-
     res.json({
         ok: true,
         nextWave: gameSession.currentWave,
-        totalPayout: gameSession.payoutEarned,
     });
-}
-
-// End game and process payout
-app.post('/endGame', isAuthenticated, (req, res) => {
-    const gameSession = gameSessions.get(req.sessionID);
-
-    if (!gameSession) {
-        return res.json({ ok: false, error: 'No active game session' });
-    }
-
-    const finalPayout = gameSession.payoutEarned;
-
-    // Log game completion
-    console.log(`Game ended for user ${gameSession.userId}:`, {
-        wavesCompleted: gameSession.wavesCompleted,
-        payout: finalPayout,
-        duration: Date.now() - gameSession.startTime
-    });
-
-    // Remove game session
-    gameSessions.delete(req.sessionID);
-
-    // Process payout if earned
-    if (finalPayout > 0) {
-        processPayout(req.session.token.id, finalPayout)
-            .then(success => {
-                if (success) {
-                    res.json({ ok: true, payout: finalPayout });
-                } else {
-                    res.json({ ok: false, error: 'Payout failed' });
-                }
-            });
-    } else {
-        res.json({ ok: true, payout: 0 });
-    }
-});
-
-// Secure payout processing
-async function processPayout(userId, amount) {
-    const data = {
-        from: 27, // Your game account
-        to: userId,
-        amount: amount, // Server-calculated amount only
-        pin: 2018, // Your server PIN
-        reason: 'Game Winnings - Server Verified'
-    };
-
-    return new Promise((resolve) => {
-        const timeout = setTimeout(() => resolve(false), 10000);
-
-        socket.once('transferResponse', (response) => {
-            clearTimeout(timeout);
-            console.log('Payout result:', response);
-            resolve(response.success);
-        });
-
-        socket.emit('transferDigipogs', data);
-    });
-}
-
-function endGameSession(sessionId, reason) {
-    const session = gameSessions.get(sessionId);
-    if (session) {
-        console.log(`Ending game session ${sessionId}: ${reason}`);
-        gameSessions.delete(sessionId);
-    }
 }
 
 // Add periodic cleanup of stale sessions

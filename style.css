@@ -324,7 +324,6 @@ label.checkbox {
 .player-sprite {
     width: 30px;
     height: 30px;
-    background: #00ff00;
     position: relative;
     transition: all 0.3s ease;
 }
@@ -560,9 +559,8 @@ label.checkbox {
 .player-sprite {
     width: 30px;
     height: 30px;
-    background: #00ff00;
+    border: grey solid 1px;
     position: relative;
-    border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .inner-shape {

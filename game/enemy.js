@@ -1,12 +1,13 @@
 class Enemy {
-    constructor(x, y, multiplier = 1) {
+    constructor(x, y) {
         this.x = x;
         this.y = y;
         this.width = 30;
         this.height = 30;
-        this.speed = 1 * multiplier;
-        this.hp = Math.ceil(1 * multiplier);
-        this.contactDamage = Math.ceil(1 * multiplier);
+        this.speed = 1;
+        this.hp = 1;
+        this.damage = 5;
+        this.worth = 1;
     }
 
     update(deltaTime) {
@@ -32,6 +33,17 @@ class Enemy {
             const dx = baseCenterX - enemyCenterX;
             const dy = baseCenterY - enemyCenterY;
             const distance = Math.sqrt(dx * dx + dy * dy);
+
+            // Check if enemy reached the base (within 30 pixels of center)
+            if (distance <= 30) {
+                // Deal damage to base and mark enemy for removal
+                if (window.game) {
+                    window.game.takeDamage(this.damage);
+                    window.game.createExplosion(this.x + this.width / 2, this.y + this.height / 2);
+                }
+                this.hp = 0; // Mark for removal
+                return;
+            }
 
             if (distance > 0) {
                 this.x += (dx / distance) * this.speed * deltaTime / 16;
@@ -77,14 +89,14 @@ class Enemy {
 }
 
 class Shooter {
-    constructor(x, y, multiplier = 1) {
+    constructor(x, y) {
         this.x = x;
         this.y = y;
         this.width = 30;
         this.height = 30;
-        this.speed = 0.8 * multiplier;
-        this.hp = Math.ceil(1 * multiplier);
-        this.contactDamage = Math.ceil(2 * multiplier);
+        this.speed = 0.8;
+        this.hp = 1;
+        this.damage = 1;
     }
 
     // Add to each enemy class
@@ -110,6 +122,17 @@ class Shooter {
             const dx = baseCenterX - enemyCenterX;
             const dy = baseCenterY - enemyCenterY;
             const distance = Math.sqrt(dx * dx + dy * dy);
+
+            // Check if enemy reached the base (within 30 pixels of center)
+            if (distance <= 30) {
+                // Deal damage to base and mark enemy for removal
+                if (window.game) {
+                    window.game.takeDamage(this.damage);
+                    window.game.createExplosion(this.x + this.width / 2, this.y + this.height / 2);
+                }
+                this.hp = 0; // Mark for removal
+                return;
+            }
 
             if (distance > 0) {
                 this.x += (dx / distance) * this.speed * deltaTime / 16;
@@ -155,15 +178,16 @@ class Shooter {
 }
 
 class Tank {
-    constructor(x, y, multiplier = 1) {
+    constructor(x, y) {
         this.x = x;
         this.y = y;
         this.width = 50;
         this.height = 40;
-        this.speed = 0.3 * multiplier;
-        this.hp = Math.ceil(5 * multiplier);
-        this.maxHp = Math.ceil(this.hp * multiplier);
-        this.contactDamage = Math.ceil(2 * multiplier);
+        this.speed = 0.3;
+        this.hp = 5;
+        this.maxHp = this.hp;
+        this.damage = 25;
+        this.worth = 5;
     }
 
     update(deltaTime) {
@@ -190,6 +214,17 @@ class Tank {
             const dx = baseCenterX - enemyCenterX;
             const dy = baseCenterY - enemyCenterY;
             const distance = Math.sqrt(dx * dx + dy * dy);
+
+            // Check if enemy reached the base (within 30 pixels of center)
+            if (distance <= 30) {
+                // Deal damage to base and mark enemy for removal
+                if (window.game) {
+                    window.game.takeDamage(this.damage);
+                    window.game.createExplosion(this.x + this.width / 2, this.y + this.height / 2);
+                }
+                this.hp = 0; // Mark for removal
+                return;
+            }
 
             if (distance > 0) {
                 this.x += (dx / distance) * this.speed * deltaTime / 16;
@@ -246,15 +281,16 @@ class Tank {
 }
 
 class Sprinter {
-    constructor(x, y, multiplier = 1) {
+    constructor(x, y) {
         this.x = x;
         this.y = y;
         this.width = 25;
         this.height = 25;
-        this.speed = 4 * multiplier;
-        this.hp = Math.ceil(1 * multiplier);
-        this.maxHp = Math.ceil(1 * multiplier);
-        this.contactDamage = Math.ceil(1 * multiplier);
+        this.speed = 4;
+        this.hp = 1;
+        this.maxHp = this.hp;
+        this.damage = 15;
+        this.worth = 3;
 
     }
 
@@ -281,6 +317,17 @@ class Sprinter {
             const dx = baseCenterX - enemyCenterX;
             const dy = baseCenterY - enemyCenterY;
             const distance = Math.sqrt(dx * dx + dy * dy);
+
+            // Check if enemy reached the base (within 30 pixels of center)
+            if (distance <= 30) {
+                // Deal damage to base and mark enemy for removal
+                if (window.game) {
+                    window.game.takeDamage(this.damage);
+                    window.game.createExplosion(this.x + this.width / 2, this.y + this.height / 2);
+                }
+                this.hp = 0; // Mark for removal
+                return;
+            }
 
             if (distance > 0) {
                 this.x += (dx / distance) * this.speed * deltaTime / 16;
