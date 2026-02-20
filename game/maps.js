@@ -49,6 +49,9 @@ class MapManager {
                 { x: 800, y: 600 },    // Sharp turn down
                 { x: 650, y: 600 },    // Straight left
                 { x: 650, y: 400 }     // Sharp turn to center
+            ],
+            spril: [
+                
             ]
         };
     }
@@ -112,7 +115,7 @@ class MapManager {
 
     // Render all paths based on current map selection
     renderPaths(ctx) {
-        ctx.lineWidth = 20;
+        ctx.lineWidth = 10;
 
         if (this.currentMapIndex === 0) {
             // Show all paths
@@ -227,6 +230,5 @@ class MapManager {
     renderMapName(ctx) {
         ctx.fillStyle = 'white';
         ctx.font = '16px Arial';
-        ctx.fillText(`Map: ${this.getCurrentMapName()}`, 10, 30);
     }
 }

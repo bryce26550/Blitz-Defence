@@ -4,30 +4,30 @@ const gameHeight = 800;
 
 // Boss Classes
 class Blaster {
-    constructor(x, y, multiplier = 1) {
+    constructor(x, y) {
         this.width = 60;
         this.height = 40;
-        this.hp = Math.ceil(85 * multiplier);
-        this.maxHp = Math.ceil(this.hp * multiplier);
+        this.hp = Math.ceil(85);
+        this.maxHp = Math.ceil(this.hp);
         this.game = game
 
         // Movement
         this.x = x;
         this.y = y;
-        this.speed = 0.10 * multiplier;
+        this.speed = 0.10;
         this.movementDirection = 1;
         this.targetX = Math.random() * (gameWidth - this.width);
         this.targetY = Math.random() * (gameHeight - this.height);
 
-        this.contactDamage = Math.ceil(4 * multiplier);
-        this.shootCooldown = Math.max(400, 800 / multiplier);
+        this.damage = Math.ceil(4);
+        this.shootCooldown = Math.max(400, 800);
         this.lastShootTime = 0;
-        this.specialAttackCooldown = Math.max(3000, 5000 / multiplier);
+        this.specialAttackCooldown = Math.max(3000, 5000);
         this.lastSpecialAttack = 0;
         this.phase = 1;
     }
 
-    update(deltaTime, bullets, player, damageMultiplier = 1) {
+    update(deltaTime, bullets, player) {
         if (this.hp <= this.maxHp * 0.3) {
             this.phase = 3;
         } else if (this.hp <= this.maxHp * 0.6) {
@@ -53,18 +53,18 @@ class Blaster {
         this.lastShootTime += deltaTime;
         const shootRate = this.phase === 3 ? 400 : this.phase === 2 ? 600 : 800;
         if (this.lastShootTime >= shootRate) {
-            this.shoot(bullets, player, damageMultiplier);
+            this.shoot(bullets, player);
             this.lastShootTime = 0;
         }
 
         this.lastSpecialAttack += deltaTime;
         if (this.lastSpecialAttack >= this.specialAttackCooldown) {
-            this.specialAttack(bullets, player, damageMultiplier);
+            this.specialAttack(bullets, player);
             this.lastSpecialAttack = 0;
         }
     }
 
-    shoot(bullets, player, damageMultiplier = 1) {
+    shoot(bullets, player) {
         const numBullets = this.phase === 3 ? 5 : this.phase === 2 ? 3 : 1;
 
         for (let i = 0; i < numBullets; i++) {
@@ -80,14 +80,14 @@ class Blaster {
             const bullet = new Bullet(this.x + this.width / 2, this.y + this.height, false);
             bullet.vx = bulletVx;
             bullet.vy = bulletVy;
-            bullet.damage = Math.ceil((this.contactDamage || 1) * damageMultiplier);
+            bullet.damage = Math.ceil((this.damage || 1));
             bullets.push(bullet);
             this.game.playSound('enemyShot')
 
         }
     }
 
-    specialAttack(bullets, player, damageMultiplier = 1) {
+    specialAttack(bullets, player) {
         const numBullets = 8;
         const speed = 0.2;
         for (let i = 0; i < numBullets; i++) {
@@ -96,7 +96,7 @@ class Blaster {
             const bullet = new Bullet(this.x + this.width / 2, this.y + this.height / 2, false);
             bullet.vx = Math.cos(angle) * speed;
             bullet.vy = Math.sin(angle) * speed;
-            bullet.damage = Math.ceil((this.contactDamage || 1) * damageMultiplier);
+            bullet.damage = Math.ceil((this.damage || 1));
             bullets.push(bullet);
             this.game.playSound('enemyShot')
 
@@ -235,7 +235,7 @@ class Blaster {
 }
 
 class Slasher {
-    constructor(x, y, multiplier = 1) {
+    constructor(x, y) {
         // Position and size
         this.x = x;
         this.y = y;
@@ -246,19 +246,19 @@ class Slasher {
         this.game = game
 
         // Health and damage
-        this.hp = Math.ceil(65 * multiplier);
+        this.hp = Math.ceil(65);
         this.maxHp = this.hp;
-        this.contactDamage = Math.ceil(8 * multiplier);
+        this.damage = Math.ceil(8);
 
         // Movement
-        this.speed = 0.5 * multiplier;
+        this.speed = 0.5;
 
         // Dash attack properties
         this.dashState = 'idle';
         this.lockOnTime = 0;
         this.lockOnDuration = 1500;
-        this.dashSpeed = 1.2 * multiplier;
-        this.dashDamage = Math.ceil(16 * multiplier);
+        this.dashSpeed = 1.2;
+        this.dashDamage = Math.ceil(16);
         this.dashCooldown = 3000;
         this.cooldownTimer = 0; // Start ready to dash immediately
         this.dashRange = 300;
@@ -270,7 +270,7 @@ class Slasher {
         this.dashVelocityY = 0;
     }
 
-    update(deltaTime, bullets, player, damageMultiplier = 1) {
+    update(deltaTime, bullets, player) {
         // Only track player when not dashing or stunned
         if (this.dashState !== 'dashing' && this.dashState !== 'cooldown') {
             // Get angle to boss for orientation
@@ -528,7 +528,7 @@ class Slasher {
 }
 
 class Wall {
-    constructor(x, y, multiplier = 1) {
+    constructor(x, y) {
         this.x = x;
         this.y = y;
         this.width = 150;
@@ -585,7 +585,7 @@ class Wall {
 }
 
 class Sentinel {
-    constructor(x, y, multiplier = 1) {
+    constructor(x, y) {
         // Position and size
         this.x = x;
         this.y = y;
@@ -594,7 +594,7 @@ class Sentinel {
         this.game = game
 
         // Health and damage
-        this.hp = Math.ceil(125 * multiplier);
+        this.hp = Math.ceil(125);
         this.maxHp = this.hp;
 
         // Wall system
@@ -611,7 +611,7 @@ class Sentinel {
         this.burstShotInterval = 50; // Fire every 150ms during burst
     }
 
-    update(deltaTime, bullets, player, damageMultiplier = 1) {
+    update(deltaTime, bullets, player) {
         const dx = (player.x + player.width / 2) - (this.x + this.width / 2);
         const dy = (player.y + player.height / 2) - (this.y + this.height / 2);
 
@@ -632,7 +632,7 @@ class Sentinel {
             // Check if time to shoot
             if (this.burstTimer >= this.burstShotInterval) {
                 // Shoot and reset burstTimer
-                this.Shoot(bullets, player, damageMultiplier);
+                this.Shoot(bullets, player);
                 this.burstTimer = 0;
             }
 
@@ -658,7 +658,7 @@ class Sentinel {
 
     }
 
-    Shoot(bullets, player, damageMultiplier = 1) {
+    Shoot(bullets, player) {
         const dx = (player.x + player.width / 2) - (this.x + this.width / 2);
         const dy = (player.y + player.height / 2) - (this.y + this.height / 2);
 
@@ -679,7 +679,7 @@ class Sentinel {
         const bullet = new Bullet(this.x + this.width / 2, this.y + this.height / 2, false);
         bullet.vx = bulletVx;
         bullet.vy = bulletVy;
-        bullet.damage = Math.ceil((this.contactDamage || 1) * damageMultiplier);
+        bullet.damage = Math.ceil((this.damage || 1));
         bullets.push(bullet);
         this.game.playSound('enemyShot')
     }
@@ -869,7 +869,7 @@ class LineShot {
 
 
 class Railgun {
-    constructor(x, y, multiplier = 1) {
+    constructor(x, y) {
         // Position and size
         this.x = x;
         this.y = y;
@@ -878,13 +878,13 @@ class Railgun {
         this.game = game
 
         // Health and damage
-        this.hp = Math.ceil(50 * multiplier);
+        this.hp = Math.ceil(50);
         this.maxHp = this.hp;
-        this.contactDamage = Math.ceil(1 * multiplier);
-        this.shotDamage = Math.ceil(6 * multiplier)
+        this.damage = Math.ceil(1);
+        this.shotDamage = Math.ceil(6)
 
         // Movement
-        this.speed = 0.5 * multiplier;
+        this.speed = 0.5;
 
         // Uniquie properties
         this.railgunState = 'cooldown';
@@ -918,7 +918,7 @@ class Railgun {
 
     }
 
-    update(deltaTime, lineshots, player, damageMultiplier = 1) {
+    update(deltaTime, lineshots, player) {
         // Emergency dash check
         const dx = player.x - this.x;
         const dy = player.y - this.y;
@@ -958,13 +958,13 @@ class Railgun {
         }
 
         if (this.eDash === true) {
-            this.handleDashingState(deltaTime, lineshots, damageMultiplier); // ← Use the state handler instead of inline logic
+            this.handleDashingState(deltaTime, lineshots); // ← Use the state handler instead of inline logic
         } else {
             switch (this.railgunState) {
                 case 'cooldown': this.handleCooldownState(deltaTime, player); break;
                 case 'locking': this.handleLockingState(deltaTime, lineshots, player); break;
                 case 'delay': this.handleDelayState(deltaTime); break;
-                case 'shooting': this.handleShootingState(deltaTime, lineshots, player, damageMultiplier); break;
+                case 'shooting': this.handleShootingState(deltaTime, lineshots, player); break;
             };
         }
     }
@@ -1059,7 +1059,7 @@ class Railgun {
     }
 
 
-    handleDashingState(deltaTime, lineshots, damageMultiplier) {
+    handleDashingState(deltaTime, lineshots) {
         // Move the boss
         this.x += this.dashVelocityX * deltaTime;
         this.y += this.dashVelocityY * deltaTime;
@@ -1072,7 +1072,7 @@ class Railgun {
 
         if (willHitWall) {
             this.eDash = false; // ← End the dash immediately
-            this.eShot(lineshots, damageMultiplier);  // ← This is correct
+            this.eShot(lineshots);  // ← This is correct
             this.railgunState = this.previousState;
 
             // Clamp position after detecting collision
@@ -1091,23 +1091,23 @@ class Railgun {
         this.shotTargetY = (player.y + player.height / 2)
     }
 
-    handleShootingState(deltaTime, lineshots, player, damageMultiplier) {
+    handleShootingState(deltaTime, lineshots, player) {
         this.lastPlayerX = player.x;
         this.lastPlayerY = player.y;
 
 
-        this.shoot(lineshots, damageMultiplier)
+        this.shoot(lineshots)
         this.railgunState = 'cooldown'
     }
 
-    shoot(lineshots, damageMultiplier) {
+    shoot(lineshots) {
         const lineShot = new LineShot(
             this.barrelTipX, // ← Fire from barrel tip
             this.barrelTipY, // ← Fire from barrel tip
             this.shotTargetX,
             this.shotTargetY,
             75,
-            this.shotDamage * damageMultiplier,
+            this.shotDamage,
         );
 
         lineShot.fire();
@@ -1116,14 +1116,14 @@ class Railgun {
         this.game.playSound('railgunShot')
     }
 
-    eShot(lineshots, damageMultiplier) {
+    eShot(lineshots,) {
         const lineShot = new LineShot(
             this.barrelTipX, // ← Fire from barrel tip
             this.barrelTipY, // ← Fire from barrel tip
             this.startX,
             this.startY,
             50,
-            this.shotDamage * damageMultiplier,
+            this.shotDamage,
         );
 
         lineShot.fire();
@@ -1315,7 +1315,7 @@ class Railgun {
 }
 
 class Overlord {
-    constructor(x, y, multiplier = 1) {
+    constructor(x, y) {
         // Position and size
         this.x = x;
         this.y = y;
@@ -1324,14 +1324,14 @@ class Overlord {
         this.game = game
 
         // Health and damage
-        this.hp = Math.ceil(45 * multiplier);
+        this.hp = Math.ceil(45);
         this.maxHp = this.hp;
-        this.contactDamage = Math.ceil(3 * multiplier);
+        this.damage = Math.ceil(3);
 
         // Movement
         this.preferredDistance = 200;
-        this.moveSpeed = 0.1 * multiplier;
-        this.retreatSpeed = 0.25 * multiplier; // Faster when threatened
+        this.moveSpeed = 0.1;
+        this.retreatSpeed = 0.25; // Faster when threatened
         this.movementDirection = 1; // For side-to-side drift
         this.lastPlayerDistance = 200; // Track if player is getting closer
         this.moveState = 'drifting';
@@ -1356,7 +1356,7 @@ class Overlord {
         this.currentWave = this.waves.first;
     }
 
-    update(deltaTime, bullets, player, damageMultiplier = 1, enemyArrays = null) {
+    update(deltaTime, bullets, player, enemyArrays = null) {
         const currentHealthPercentage = this.hp / this.maxHp;
 
         // Check for health threshold changes
@@ -1438,7 +1438,7 @@ class Overlord {
                 // Create enemy instance
                 const spawnX = Math.random() * (gameWidth - 40);
                 const spawnY = -40; // Spawn above the screen
-                const enemy = new EnemyClass(spawnX, spawnY, damageMultiplier);
+                const enemy = new EnemyClass(spawnX, spawnY,);
                 enemy.minion = true;
 
                 // Add to appropriate enemy array

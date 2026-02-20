@@ -101,6 +101,9 @@ class Game {
 
         this.exp = 0;
         this.level = 1;
+        this.sheild = 250;
+        this.maxSheild = 250;
+        this.money = 250;
         this.expToNextLevel = 100;
         this.showLevelUp = false;
 
@@ -127,6 +130,7 @@ class Game {
             enemyShot: document.getElementById('enemyShot'),
             playerHit: document.getElementById('playerHit'),
             playerShot: document.getElementById('playerShot'),
+            playerDefeat: document.getElementById('playerDefeat'),
             slasherDash: document.getElementById('slasherDash'),
             railgunShot: document.getElementById('railgunShot')
         }
@@ -157,8 +161,6 @@ class Game {
         this.lastTime = 0;
         this.waveNumber = 1;
         this.waveStartTime = Date.now();
-        this.globalEnemyMultiplier = 1;
-        this.enemyDamageMultiplier = 1;
 
         // Enemy tracking
         this.totalEnemiesInWave = 0;
@@ -298,58 +300,70 @@ class Game {
     updatePlayerPreview() {
         const playerSprite = document.getElementById('playerSprite');
         if (playerSprite) {
-            // Clear any existing shape classes first
-            playerSprite.classList.remove('triangle-shape', 'circle-shape', 'square-shape');
+            // Clear the sprite and create a canvas for proper rendering
+            playerSprite.innerHTML = '';
 
-            // Set the background to player color (this is the ship body)
-            playerSprite.style.backgroundColor = this.player.color;
+            const canvas = document.createElement('canvas');
+            canvas.width = 30;
+            canvas.height = 30;
+            canvas.style.width = '30px';
+            canvas.style.height = '30px';
 
-            // Create or update the inner shape element
-            let innerShape = playerSprite.querySelector('.inner-shape');
-            if (!innerShape) {
-                innerShape = document.createElement('div');
-                innerShape.className = 'inner-shape';
-                playerSprite.appendChild(innerShape);
-            }
+            const ctx = canvas.getContext('2d');
 
-            // Style the inner shape (always white like in-game)
-            innerShape.style.backgroundColor = '#ffffff';
-            innerShape.style.position = 'absolute';
-            innerShape.style.top = '50%';
-            innerShape.style.left = '50%';
-            innerShape.style.transform = 'translate(-50%, -50%)';
+            // Create a temporary player object for rendering preview
+            const tempPlayer = {
+                x: 0,
+                y: 0,
+                width: 30,
+                height: 30,
+                color: this.player.color,
+                bodyShapeIndex: this.player.bodyShapeIndex,
+                innerShapeIndex: this.player.innerShapeIndex,
+                drawBodyShape: this.player.drawBodyShape.bind(this.player),
+                drawInnerShape: this.player.drawInnerShape.bind(this.player),
+                drawStar: this.player.drawStar.bind(this.player),
+                drawPolygon: this.player.drawPolygon.bind(this.player),
+            };
 
-            // Apply the appropriate shape
-            innerShape.classList.remove('triangle-shape', 'circle-shape', 'square-shape');
+            // Set the player properties for rendering
+            const originalX = this.player.x;
+            const originalY = this.player.y;
+            const originalBodyShape = this.player.bodyShapeIndex;
+            const originalInnerShape = this.player.innerShapeIndex;
 
-            if (this.player.shapeIndex === 0) {
-                // Triangle
-                innerShape.classList.add('triangle-shape');
-                innerShape.style.width = '16px';
-                innerShape.style.height = '16px';
-            } else if (this.player.shapeIndex === 1) {
-                // Circle
-                innerShape.classList.add('circle-shape');
-                innerShape.style.width = '12px';
-                innerShape.style.height = '12px';
-            } else {
-                // Square
-                innerShape.classList.add('square-shape');
-                innerShape.style.width = '18px';
-                innerShape.style.height = '18px';
-            }
+            this.player.x = 0;
+            this.player.y = 0;
+            this.player.bodyShapeIndex = this.player.bodyShapeIndex;
+            this.player.innerShapeIndex = this.player.innerShapeIndex;
+
+            // Render the player preview
+            this.player.drawBodyShape(ctx);
+            this.player.drawInnerShape(ctx, 15, 15, 18);
+
+            // Restore original values
+            this.player.x = originalX;
+            this.player.y = originalY;
+            this.player.bodyShapeIndex = originalBodyShape;
+            this.player.innerShapeIndex = originalInnerShape;
+
+            // Add the canvas to the sprite container
+            playerSprite.appendChild(canvas);
         }
 
-        const colorNames = ['Green', 'Blue', 'Purple', 'Cyan', 'Orange', 'Red'];
-        const shapeNames = ['Triangle', 'Circle', 'Square'];
+        // Update text labels with expanded arrays
+        const colorNames = ['Green', 'Blue', 'Purple', 'Cyan', 'Orange', 'Red', 'Pink', 'Lavender', 'Yellow', 'Gray'];
+        const bodyShapeNames = ['Triangle', 'Circle', 'Square', 'Star', 'Diamond', 'Hexagon', 'Cross'];
+        const innerShapeNames = ['Triangle', 'Circle', 'Square', 'Star', 'Diamond', 'Hexagon', 'Cross'];
 
         const colorNameEl = document.getElementById('colorName');
+        const bodyShapeNameEl = document.getElementById('bodyShapeName');
         const shapeNameEl = document.getElementById('shapeName');
 
         if (colorNameEl) colorNameEl.textContent = colorNames[this.player.colorIndex] || 'Unknown';
-        if (shapeNameEl) shapeNameEl.textContent = shapeNames[this.player.shapeIndex] || 'Unknown';
+        if (bodyShapeNameEl) bodyShapeNameEl.textContent = bodyShapeNames[this.player.bodyShapeIndex] || 'Unknown';
+        if (shapeNameEl) shapeNameEl.textContent = innerShapeNames[this.player.innerShapeIndex] || 'Unknown';
     }
-
 
     updatePlayerShape(sprite) {
         sprite.classList.remove('triangle-shape', 'circle-shape', 'square-shape');
@@ -388,12 +402,12 @@ class Game {
     updateGameUI() {
         // Update all UI elements
         const elements = {
-            'waveValue': this.waveNumber,
             'levelValue': this.level,
             'expValue': this.exp,
             'expMaxValue': this.expToNextLevel,
-            'healthValue': this.player.health,
-            'healthMaxValue': this.player.maxHealth
+            'healthValue': this.sheild,
+            'healthMaxValue': this.maxSheild,
+            'moneyValue': this.money
         };
 
         for (const [id, value] of Object.entries(elements)) {
@@ -421,10 +435,16 @@ class Game {
 
             if (!this.started) {
                 if (e.code === 'KeyC') {
-                    this.player.cycleColor();
+                    this.player.cycleShellColor();
+                    this.updatePlayerPreview();
                 }
                 if (e.code === 'KeyV') {
-                    this.player.cycleShape();
+                    this.player.cycleInnerShape();
+                    this.updatePlayerPreview();
+                }
+                if (e.code === 'KeyB') {
+                    this.player.cycleBodyShape();
+                    this.updatePlayerPreview();
                 }
             }
 
@@ -494,11 +514,6 @@ class Game {
             pauseRestartBtn.addEventListener('click', async () => {
                 console.log('Pause restart button clicked');
 
-                // Process payout if there are winnings
-                if (this.payOutAmount > 0) {
-                    await this.automaticPayout();
-                }
-
                 // Set a flag so we know we came from pause menu
                 this.restartFromPause = true;
 
@@ -534,7 +549,15 @@ class Game {
         const colorBtn = document.getElementById('colorBtn');
         if (colorBtn) {
             colorBtn.addEventListener('click', () => {
-                this.player.cycleColor();
+                this.player.cycleShellColor();
+                this.updatePlayerPreview();
+            });
+        }
+
+        const bodyShapeBtn = document.getElementById('bodyShapeBtn');
+        if (bodyShapeBtn) {
+            bodyShapeBtn.addEventListener('click', () => {
+                this.player.cycleBodyShape();
                 this.updatePlayerPreview();
             });
         }
@@ -542,7 +565,7 @@ class Game {
         const shapeBtn = document.getElementById('shapeBtn');
         if (shapeBtn) {
             shapeBtn.addEventListener('click', () => {
-                this.player.cycleShape();
+                this.player.cycleInnerShape();
                 this.updatePlayerPreview();
             });
         }
@@ -560,7 +583,7 @@ class Game {
         const playerPreview = document.getElementById('playerPreview');
         if (playerPreview) {
             playerPreview.addEventListener('click', () => {
-                this.player.cycleColor();
+                this.player.cycleShellColor();
                 this.updatePlayerPreview();
             });
         }
@@ -626,7 +649,7 @@ class Game {
         const randomIndex = Math.floor(Math.random() * this.availableBosses.length);
         const bossClass = this.availableBosses[randomIndex];
 
-        const boss = new bossClass(this.width / 2 - 30, 75, this.globalEnemyMultiplier);
+        const boss = new bossClass(this.width / 2 - 30, 75);
 
         // Give boss access to game dimensions
         boss.gameWidth = this.width;
@@ -753,7 +776,7 @@ class Game {
         const pathWaypoints = this.mapManager.getPathWaypoints(pathName);
 
         // Create enemy with path
-        const enemy = new EnemyClass(spawnPos.x, spawnPos.y, this.globalEnemyMultiplier, this);
+        const enemy = new EnemyClass(spawnPos.x, spawnPos.y, this);
 
         // Center enemy on path
         enemy.x = spawnPos.x - enemy.width / 2;
@@ -826,9 +849,6 @@ class Game {
             this.waveNumber = nextWave;
             this.waveComplete = true;
             this.waveStartTime = Date.now();
-
-
-            console.log(`Wave completed. Server payout: ${result.totalPayout}`);
         }
     }
 
@@ -1080,51 +1100,35 @@ class Game {
         // Update enemies
         this.enemies = this.enemies.filter(enemy => {
             enemy.update(deltaTime);
-            if (enemy.y >= this.height + 30) {
-                this.player.takeDamageAmount(1)
-                this.createExplosion(this.player.x, this.player.y)
-            }
-            return enemy.y < this.height + 30 && enemy.hp > 0;
+            return enemy.hp > 0;
         });
 
         // Update shooters
         this.shooters = this.shooters.filter(shooter => {
-            shooter.update(deltaTime, this.bullets, this.player, this.enemyDamageMultiplier);
-            if (shooter.y >= this.height + 30) {
-                this.player.takeDamageAmount(1)
-                this.createExplosion(this.player.x, this.player.y)
-            }
-            return shooter.y < this.height + 30 && shooter.hp > 0;
+            shooter.update(deltaTime);
+            return shooter.hp > 0;
         });
 
         // Update tanks
         this.tanks = this.tanks.filter(tank => {
-            tank.update(deltaTime, this.bullets, this.player, this.enemyDamageMultiplier);
-            if (tank.y >= this.height + 40) {
-                this.player.takeDamageAmount(3)
-                this.createExplosion(this.player.x, this.player.y)
-            }
-            return tank.y < this.height + 40 && tank.hp > 0;
+            tank.update(deltaTime);
+            return tank.hp > 0;
         });
 
         // Update sprinters
         this.sprinters = this.sprinters.filter(sprinter => {
-            sprinter.update(deltaTime, this.player);
-            if (sprinter.y >= this.height + 25) {
-                this.player.takeDamageAmount(2)
-                this.createExplosion(this.player.x, this.player.y)
-            }
-            return sprinter.y < this.height + 25 && sprinter.hp > 0;
+            sprinter.update(deltaTime);
+            return sprinter.hp > 0;
         });
 
         // Update bosses
         this.bosses = this.bosses.filter(boss => {
             if (boss.constructor.name === 'Railgun') {
                 // Railgun needs lineshots as second parameter
-                boss.update(deltaTime, this.lineshots, this.player, this.enemyDamageMultiplier);
+                boss.update(deltaTime, this.lineshots, this.player);
             } else {
                 // Other bosses use the standard format
-                boss.update(deltaTime, this.bullets, this.player, this.enemyDamageMultiplier, {
+                boss.update(deltaTime, this.bullets, this.player, {
                     enemies: this.enemies,
                     shooters: this.shooters,
                     tanks: this.tanks,
@@ -1176,6 +1180,7 @@ class Game {
 
                     if (enemy.hp <= 0) {
                         this.createExplosion(enemy.x, enemy.y);
+                        this.money += enemy.worth;
                         this.enemies.splice(j, 1);
 
                         this.addExp(5);
@@ -1222,6 +1227,7 @@ class Game {
                     if (this.tanks[j].hp <= 0) {
                         const tanks = this.tanks[j];
                         this.createExplosion(this.tanks[j].x, this.tanks[j].y);
+                        this.money += tanks.worth;
                         this.tanks.splice(j, 1);
                         this.addExp(25);
                         if (this.player.lifeSteal && this.player.health < this.player.maxHealth) {
@@ -1243,6 +1249,7 @@ class Game {
                     if (this.sprinters[j].hp <= 0) {
                         const sprinters = this.sprinters[j];
                         this.createExplosion(this.sprinters[j].x, this.sprinters[j].y);
+                        this.money += sprinters.worth;
                         this.sprinters.splice(j, 1);
                         this.addExp(35);
                         if (this.player.lifeSteal && this.player.health < this.player.maxHealth) {
@@ -1338,7 +1345,7 @@ class Game {
         for (let i = allEnemies.length - 1; i >= 0; i--) {
             if (this.checkCollision(this.player, allEnemies[i])) {
                 this.createExplosion(allEnemies[i].x, allEnemies[i].y);
-                const dmg = Math.ceil((allEnemies[i].contactDamage || 1) * this.enemyDamageMultiplier);
+                const dmg = Math.ceil((allEnemies[i].contactDamage || 1));
                 this.player.takeDamageAmount(dmg);
                 this.playSound('playerHit');
 
@@ -1438,6 +1445,22 @@ class Game {
 
     }
 
+
+    takeDamage(amount) {
+        this.sheild = Math.max(0, this.sheild - amount);
+        this.playSound('playerHit')
+        console.log(`Base took ${amount} damage! Health: ${this.sheild}/${this.maxSheild}`);
+
+        if (this.sheild <= 0) {
+            this.gameOver();
+        }
+    }
+
+    // Method to heal base (for upgrades)
+    healBase(amount) {
+        this.sheild = Math.min(this.maxSheild, this.sheild + amount);
+    }
+
     checkCollision(obj1, obj2) {
         return obj1.x < obj2.x + obj2.width &&
             obj1.x + obj1.width > obj2.x &&
@@ -1451,45 +1474,9 @@ class Game {
         }
     }
 
-    async automaticPayout() {
-        if (this.payOutAmount <= 0) {
-            console.log('No payout needed - amount is 0');
-            return true;
-        }
-
-        console.log(`Initiating automatic payout of ${this.payOutAmount} digipogs`);
-
-        try {
-            const result = await post('/payOut', { payOutAmount: this.payOutAmount });
-            console.log('Automatic payout result:', result);
-
-            if (result.ok) {
-                console.log(`Successfully paid out ${this.payOutAmount} digipogs automatically`);
-                this.payOutAmount = 0;
-                return true;
-            } else {
-                console.error('Automatic payout failed:', result.error);
-                return false;
-            }
-        } catch (error) {
-            console.error('Automatic payout error:', error);
-            return false;
-        }
-    }
-
     async gameOver() {
         this.gameRunning = false;
         this.playSound('playerDefeat')
-
-        // End server session and get final payout
-        const endResult = await post('/endGame', {});
-
-        const finalPayout = endResult.ok ? endResult.payout : 0;
-
-        // Update UI with server-calculated payout
-        const payOutAmountEl = document.getElementById('payOutAmount');
-        if (payOutAmountEl) payOutAmountEl.textContent = finalPayout;
-
         document.getElementById('gameOver').classList.remove('hidden');
     }
 
@@ -1498,6 +1485,8 @@ class Game {
         // Store current customization before creating new player
         const savedColor = this.player.color;
         const savedColorIndex = this.player.colorIndex;
+        const savedBodyShapeIndex = this.player.bodyShapeIndex;
+        const savedInnerShapeIndex = this.player.innerShapeIndex;
         const savedShapeIndex = this.player.shapeIndex;
 
         // hasPaid = false;
@@ -1514,8 +1503,6 @@ class Game {
         this.expToNextLevel = 100;
         this.waveNumber = 1;
         this.waveRequirement = 300;
-        this.globalEnemyMultiplier = 1;
-        this.enemyDamageMultiplier = 1;
         this.showLevelUp = false;
         this.gamePaused = false;
         this.gamePausedReason = '';
@@ -1537,6 +1524,8 @@ class Game {
         this.player.color = savedColor;
         this.player.colorIndex = savedColorIndex;
         this.player.shapeIndex = savedShapeIndex;
+        this.player.bodyShapeIndex = savedBodyShapeIndex;
+        this.player.innerShapeIndex = savedInnerShapeIndex;
         this.player.game = this;
 
         document.getElementById('gameOver').classList.add('hidden');
