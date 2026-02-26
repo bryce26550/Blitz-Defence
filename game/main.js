@@ -149,8 +149,11 @@ class Game {
         this.currentWave = [];
         this.currentWaveIndex = 0;
         this.waveComplete = false;
+        this.totalWaves = this.waveManager.getTotalWaves();
         this.spawnTimer = 0;
         this.spawnDelay = 250; // 0.25 seconds in milliseconds
+        this.waveStartAllowed = false; // Flag to control wave start button availability
+        this.autoStart = false; // Disable auto-starting next wave for manual control
 
         // Multi-track spawning modes
         this.multiTrackMode = 'perWave'; // 'perEnemy', 'perWave', or 'single'
@@ -175,7 +178,8 @@ class Game {
             shapeBox: null,
             previewBox: null,
             upgradeOptions: [],
-            pause: { resumeButton: null, restartButton: null }
+            pause: { resumeButton: null, restartButton: null },
+            waveStart: { x: this.width - 45, y: this.height - 45, w: 30, h: 30 }
         };
 
         // Map management
@@ -206,7 +210,7 @@ class Game {
     }
 
     hideAllMenus() {
-        const menuIds = ['startMenu', 'pauseMenu', 'levelUpMenu'];
+        const menuIds = ['startMenu', 'pauseMenu', 'levelUpMenu', 'gameOver', 'victoryMenu'];
         menuIds.forEach(id => {
             const element = document.getElementById(id);
             if (element) {
@@ -407,7 +411,9 @@ class Game {
             'expMaxValue': this.expToNextLevel,
             'healthValue': this.sheild,
             'healthMaxValue': this.maxSheild,
-            'moneyValue': this.money
+            'moneyValue': this.money,
+            'currentWave': this.waveNumber,
+            'totalWaves': this.totalWaves,
         };
 
         for (const [id, value] of Object.entries(elements)) {
@@ -473,7 +479,7 @@ class Game {
             const rect = this.canvas.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
-            // this.handleCanvasClick(x, y, e);
+            this.handleCanvasClick(x, y, e);
         });
 
         const restartBtn = document.getElementById('restartBtn');
@@ -489,8 +495,6 @@ class Game {
                 pay();
             });
         }
-
-        // Add these to your setupEventListeners() method:
 
         // Start button
         const startBtn = document.getElementById('startBtn');
@@ -530,7 +534,6 @@ class Game {
             });
         }
 
-        // Add this to your setupEventListeners() method if it's missing:
         const mainMenuBtn = document.getElementById('mainMenuBtn'); // or quitBtn if you're using same ID
         if (mainMenuBtn) {
             mainMenuBtn.addEventListener('click', () => {
@@ -543,6 +546,27 @@ class Game {
                 this.quitToMenu();
             });
         }
+
+        // Victory menu buttons (unique IDs)
+        const victoryRestartBtn = document.getElementById('victoryRestartBtn');
+        if (victoryRestartBtn) {
+            victoryRestartBtn.addEventListener('click', async () => {
+                console.log('Victory restart button clicked');
+                document.getElementById('victoryMenu').classList.add('hidden');
+                this.quitToMenu();
+                pay();
+            });
+        }
+
+        const victoryMainMenuBtn = document.getElementById('victoryMainMenuBtn');
+        if (victoryMainMenuBtn) {
+            victoryMainMenuBtn.addEventListener('click', () => {
+                console.log('Victory main menu button clicked');
+                document.getElementById('victoryMenu').classList.add('hidden');
+                this.quitToMenu();
+            });
+        }
+
 
 
         // Player customization buttons
@@ -590,6 +614,35 @@ class Game {
 
     }
 
+    handleCanvasClick(x, y, e) {
+        // Check if wave start button was clicked
+        if (this.pointInRect(x, y, this.uiRects.waveStart)) {
+            console.log("Wave start button clicked!");
+
+            // Check if button should be clickable
+            if (this.totalEnemiesInWave > 0 && (this.enemiesSpawned < this.totalEnemiesInWave || this.enemiesAlive > 0)) {
+                console.log("Wave still in progress, button disabled");
+                return;
+            }
+
+            console.log("Loading and starting wave manually via button click");
+
+            // Load the new wave
+            this.loadNewWave();
+
+            // Enable spawning
+            this.waveStartAllowed = true;
+
+            return;
+        }
+
+        // Handle other canvas clicks here if needed
+        console.log(`Canvas clicked at: ${x}, ${y}`);
+    }
+
+
+
+
     quitToMenu() {
         console.log('quitToMenu called');
 
@@ -601,12 +654,6 @@ class Game {
 
         // Reset payment
         // hasPaid = false;
-
-        // Explicitly hide game over menu
-        const gameOverMenu = document.getElementById('gameOver');
-        if (gameOverMenu) {
-            gameOverMenu.classList.add('hidden');
-        }
 
         // Hide all other menus and show start menu
         this.hideAllMenus();
@@ -723,8 +770,14 @@ class Game {
 
     spawnEnemies(deltaTime) {
         // Load new wave if current is complete
-        if (this.waveComplete || this.currentWave.length === 0) {
-            this.loadNewWave();
+        if (!this.waveStartAllowed) {
+            return; // Don't spawn if wave start is not allowed
+        }
+
+        if (this.autoStart) {
+            if (this.waveComplete || this.currentWave.length === 0) {
+                this.loadNewWave();
+            }
         }
 
         // Spawn enemies with timing
@@ -733,6 +786,7 @@ class Game {
             this.spawnNextEnemy();
             this.spawnTimer = 0;
         }
+
     }
 
     loadNewWave() {
@@ -817,9 +871,13 @@ class Game {
     }
 
     async checkWaveProgress() {
+        // Don't check progress if no wave has been loaded yet
+        if (this.totalEnemiesInWave === 0) {
+            return; // Exit early - no wave to check progress on
+        }
+
         // Count total living enemies
-        this.enemiesAlive = this.enemies.length + this.shooters.length +
-            this.tanks.length + this.sprinters.length + this.bosses.length;
+        this.enemiesAlive = this.enemies.length + this.shooters.length + this.tanks.length + this.sprinters.length + this.bosses.length;
 
         // Check if wave is complete (all enemies spawned and defeated)
         if (this.enemiesSpawned >= this.totalEnemiesInWave && this.enemiesAlive === 0) {
@@ -845,10 +903,20 @@ class Game {
 
             const nextWave = result.nextWave;
 
+            if (this.waveNumber >= this.totalWaves) {
+                this.victory();
+                return;
+            }
+
             // Normal wave transition
             this.waveNumber = nextWave;
+            this.waveStartAllowed = true; // Disable until next wave is loaded
             this.waveComplete = true;
             this.waveStartTime = Date.now();
+
+            this.currentWave = [];
+            this.totalEnemiesInWave = 0;
+            this.enemiesSpawned = 0;
         }
     }
 
@@ -1480,6 +1548,12 @@ class Game {
         document.getElementById('gameOver').classList.remove('hidden');
     }
 
+    async victory() {
+        this.gameRunning = false;
+        // this.playSound('bossDefeat')
+        document.getElementById('victoryMenu').classList.remove('hidden');
+    }
+
 
     restart(startImmediately = false) {
         // Store current customization before creating new player
@@ -1500,6 +1574,7 @@ class Game {
         this.particles = [];
         this.exp = 0;
         this.level = 1;
+        this.money = 250;
         this.expToNextLevel = 100;
         this.waveNumber = 1;
         this.waveRequirement = 300;
@@ -1513,6 +1588,8 @@ class Game {
         this.currentWave = [];
         this.currentWaveIndex = 0;
         this.waveComplete = false;
+        this.waveStartAllowed = false;
+        this.autoStart = false; // Disable auto-starting next wave for manual control
         this.spawnTimer = 0;
         this.totalEnemiesInWave = 0;
         this.enemiesSpawned = 0;
@@ -1535,6 +1612,31 @@ class Game {
         // Clear canvas
         this.ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
         this.ctx.fillRect(0, 0, this.width, this.height);
+
+        // Draw Wave Start button
+        if (this.started && this.gameRunning && this.enemiesAlive === 0 && (this.enemiesSpawned >= this.totalEnemiesInWave || this.totalEnemiesInWave === 0)) {
+
+            this.ctx.fillStyle = 'rgba(0, 255, 0, 1)';
+            this.ctx.fillRect(this.uiRects.waveStart.x, this.uiRects.waveStart.y, this.uiRects.waveStart.w, this.uiRects.waveStart.h);
+
+            // Draw white triangle pointing right
+            this.ctx.fillStyle = '#ffffff';
+            this.ctx.beginPath();
+
+            // Calculate triangle points (centered in button, pointing right)
+            const buttonCenterX = this.uiRects.waveStart.x + this.uiRects.waveStart.w / 2;
+            const buttonCenterY = this.uiRects.waveStart.y + this.uiRects.waveStart.h / 2;
+            const triangleSize = 25; // Adjust size as needed
+
+            // Triangle pointing right
+            this.ctx.moveTo(buttonCenterX - triangleSize / 3, buttonCenterY - triangleSize / 2); // Top left
+            this.ctx.lineTo(buttonCenterX + triangleSize / 2.5, buttonCenterY);                 // Right point
+            this.ctx.lineTo(buttonCenterX - triangleSize / 3, buttonCenterY + triangleSize / 2); // Bottom left
+            this.ctx.closePath();
+            this.ctx.fill();
+
+        }
+
 
 
         // Use MapManager for rendering paths and base

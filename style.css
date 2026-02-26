@@ -58,6 +58,11 @@ body {
     text-shadow: 2px 2px 4px rgba(255, 68, 68, 0.5);
 }
 
+.victory-title {
+    color: #4CAF50 !important;
+    text-shadow: 2px 2px 4px rgba(76, 175, 80, 0.5);
+}
+
 .payout-info {
     color: #ffd700;
     font-size: 18px;
