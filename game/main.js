@@ -153,7 +153,11 @@ class Game {
         this.spawnTimer = 0;
         this.spawnDelay = 250; // 0.25 seconds in milliseconds
         this.waveStartAllowed = false; // Flag to control wave start button availability
-        this.autoStart = false; // Disable auto-starting next wave for manual control
+
+        // Load persisted settings (set from the Settings panel)
+        const _saved = (() => { try { return JSON.parse(localStorage.getItem('blitzDefenceSettings') || '{}'); } catch(e) { return {}; } })();
+        this.autoStart   = _saved.waveAuto  === true;  // default: manual
+        this.showTooltips = _saved.tooltips !== false;  // default: on
 
         // Multi-track spawning modes
         this.multiTrackMode = 'perWave'; // 'perEnemy', 'perWave', or 'single'
@@ -1589,7 +1593,10 @@ class Game {
         this.currentWaveIndex = 0;
         this.waveComplete = false;
         this.waveStartAllowed = false;
-        this.autoStart = false; // Disable auto-starting next wave for manual control
+        // Re-read persisted settings so restart honours the player's preferences
+        const _s = (() => { try { return JSON.parse(localStorage.getItem('blitzDefenceSettings') || '{}'); } catch(e) { return {}; } })();
+        this.autoStart    = _s.waveAuto  === true;
+        this.showTooltips = _s.tooltips  !== false;
         this.spawnTimer = 0;
         this.totalEnemiesInWave = 0;
         this.enemiesSpawned = 0;

@@ -54,6 +54,7 @@
                 </div>
                 <span class="progress-label">Experience</span>
             </div> -->
+            <button class="settings-icon-btn" onclick="openSettings()" title="Settings">&#9881;</button>
         </div>
 
         <!-- Start Menu -->
@@ -92,7 +93,7 @@
                                     <div class="control-item">• Drag towers onto the map to place them</div>
                                     <div class="control-item">• Earn currency by defeating enemies</div>
                                     <div class="control-item">• Each enemy that reaches your base will depleat your sheild</div>
-                                    <div class="control-item">• Run out of sheild - GANE OVER!</div>
+                                    <div class="control-item">• Run out of sheild - GAME OVER!</div>
                                     <div class="control-item">• Upgrade towers to increase power</div>
                                     <div class="control-item">• Survive waves and defeat bosses!</div>
                                     <button id="mapBtn" class="customize-btn">Change Map</button>
@@ -140,6 +141,37 @@
             </div>
         </div>
 
+        <!-- Settings Modal -->
+        <div id="settingsModal" class="menu-overlay hidden" onclick="handleSettingsOverlayClick(event)">
+            <div class="menu-panel settings-panel">
+                <h2 class="settings-title">Settings</h2>
+
+                <div class="settings-row">
+                    <div class="settings-info">
+                        <span class="settings-label">Wave Start</span>
+                        <span class="settings-desc">Choose when new waves begin</span>
+                    </div>
+                    <div class="toggle-group">
+                        <button class="toggle-btn" id="waveManualBtn" onclick="setSetting('waveAuto', false)">Manual</button>
+                        <button class="toggle-btn" id="waveAutoBtn" onclick="setSetting('waveAuto', true)">Auto</button>
+                    </div>
+                </div>
+
+                <div class="settings-row">
+                    <div class="settings-info">
+                        <span class="settings-label">Tooltips</span>
+                        <span class="settings-desc">Show hints when hovering over elements and have helpful advice throughout the game</span>
+                    </div>
+                    <div class="toggle-group">
+                        <button class="toggle-btn" id="tooltipsOnBtn" onclick="setSetting('tooltips', true)">On</button>
+                        <button class="toggle-btn" id="tooltipsOffBtn" onclick="setSetting('tooltips', false)">Off</button>
+                    </div>
+                </div>
+
+                <button class="primary-btn" style="margin-top:20px" onclick="closeSettings()">Done</button>
+            </div>
+        </div>
+
         <!-- Victory Menu -->
         <div id="victoryMenu" class="menu-overlay hidden">
             <div class="menu-panel">
@@ -164,6 +196,74 @@
     <script src="/game/towers.js"></script>
     <script src="/game/waves.js"></script>
     <script src="/game/main.js"></script>
+    <script>
+        // ── Settings ──────────────────────────────────────────────
+        const _defaultSettings = { waveAuto: false, tooltips: true };
+
+        function _loadSettings() {
+            try {
+                return Object.assign({}, _defaultSettings,
+                    JSON.parse(localStorage.getItem('blitzDefenceSettings') || '{}'));
+            } catch (e) {
+                return Object.assign({}, _defaultSettings);
+            }
+        }
+
+        function _saveSettings(s) {
+            localStorage.setItem('blitzDefenceSettings', JSON.stringify(s));
+        }
+
+        function _applySettingsToGame(s) {
+            if (window.game) {
+                window.game.autoStart  = s.waveAuto;
+                window.game.showTooltips = s.tooltips;
+            }
+        }
+
+        function _syncToggleUI(s) {
+            document.getElementById('waveManualBtn').classList.toggle('active', !s.waveAuto);
+            document.getElementById('waveAutoBtn').classList.toggle('active',   s.waveAuto);
+            document.getElementById('tooltipsOnBtn').classList.toggle('active',  s.tooltips);
+            document.getElementById('tooltipsOffBtn').classList.toggle('active', !s.tooltips);
+        }
+
+        function setSetting(key, value) {
+            const s = _loadSettings();
+            s[key] = value;
+            _saveSettings(s);
+            _applySettingsToGame(s);
+            _syncToggleUI(s);
+        }
+
+        function openSettings() {
+            const s = _loadSettings();
+            _applySettingsToGame(s);
+            _syncToggleUI(s);
+            document.getElementById('settingsModal').classList.remove('hidden');
+        }
+
+        function closeSettings() {
+            document.getElementById('settingsModal').classList.add('hidden');
+        }
+
+        function handleSettingsOverlayClick(e) {
+            if (e.target === document.getElementById('settingsModal')) closeSettings();
+        }
+
+        // Apply saved settings whenever the game starts / restarts
+        document.addEventListener('DOMContentLoaded', () => {
+            const s = _loadSettings();
+            _syncToggleUI(s);
+
+            // Re-apply each time game starts (startBtn, restartBtn, etc.)
+            ['startBtn','restartBtn','pauseRestartBtn','victoryRestartBtn'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.addEventListener('click', () => {
+                    setTimeout(() => _applySettingsToGame(_loadSettings()), 50);
+                });
+            });
+        });
+    </script>
 
     <div class="payment-overlay" onclick="hidePayment()"></div>
     <div class="payment-content">
