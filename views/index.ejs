@@ -8,35 +8,39 @@
     <link rel="stylesheet" href="/style.css">
 </head>
 
-<audio id="backgroundMusic" loop preload="auto">
-    <source src="music/Background.m4a" type="audio/mp4">
-</audio>
-<audio id="enemyHit" loop preload="auto">
-    <source src="sfx/enemyHit.wav" type="audio/wav">
-</audio>
-<audio id="enemyShot" loop preload="auto">
-    <source src="sfx/enemyShot.wav" type="audio/wav">
-</audio>
-<audio id="playerHit" loop preload="auto">
-    <source src="sfx/playerHit.wav" type="audio/wav">
-</audio>
-<audio id="playerShot" loop preload="auto">
-    <source src="sfx/playerShot.wav" type="audio/wav">
-</audio>
-<audio id="railgunShot" loop preload="auto">
-    <source src="sfx/railgunShot.wav" type="audio/wav">
-</audio>
-<audio id="slasherDash" loop preload="auto">
-    <source src="sfx/slasherDash.wav" type="audio/wav">
-</audio>
-<audio id="playerDefeat" loop preload="auto">
-    <source src="sfx/playerDefeat.wav" type="audio/wav">
-</audio>
-<audio id="bossDefeat" loop preload="auto">
-    <source src="sfx/bossDefeat.wav" type="audio/wav">
-</audio>
-
 <body>
+    <!-- Settings button — fixed to top-right of viewport, always visible -->
+    <button id="settingsCornerBtn" class="settings-corner-btn" onclick="openSettings()" title="Settings">&#9881;</button>
+
+    <!-- Audio elements -->
+    <audio id="backgroundMusic" loop preload="auto">
+        <source src="music/Background.m4a" type="audio/mp4">
+    </audio>
+    <audio id="enemyHit" loop preload="auto">
+        <source src="sfx/enemyHit.wav" type="audio/wav">
+    </audio>
+    <audio id="enemyShot" loop preload="auto">
+        <source src="sfx/enemyShot.wav" type="audio/wav">
+    </audio>
+    <audio id="playerHit" loop preload="auto">
+        <source src="sfx/playerHit.wav" type="audio/wav">
+    </audio>
+    <audio id="playerShot" loop preload="auto">
+        <source src="sfx/playerShot.wav" type="audio/wav">
+    </audio>
+    <audio id="railgunShot" loop preload="auto">
+        <source src="sfx/railgunShot.wav" type="audio/wav">
+    </audio>
+    <audio id="slasherDash" loop preload="auto">
+        <source src="sfx/slasherDash.wav" type="audio/wav">
+    </audio>
+    <audio id="playerDefeat" loop preload="auto">
+        <source src="sfx/playerDefeat.wav" type="audio/wav">
+    </audio>
+    <audio id="bossDefeat" loop preload="auto">
+        <source src="sfx/bossDefeat.wav" type="audio/wav">
+    </audio>
+
     <div id="gameContainer">
         <canvas id="gameCanvas" width="1300" height="800"></canvas>
 
@@ -54,7 +58,6 @@
                 </div>
                 <span class="progress-label">Experience</span>
             </div> -->
-            <button class="settings-icon-btn" onclick="openSettings()" title="Settings">&#9881;</button>
         </div>
 
         <!-- Start Menu -->
@@ -101,7 +104,10 @@
                             </div>
                         </div>
 
-                        <button id="startBtn" class="primary-btn">START GAME</button>
+                        <div class="start-menu-bottom">
+                            <button id="startBtn" class="primary-btn">START GAME</button>
+                            <button class="settings-menu-btn" onclick="openSettings()">&#9881; Settings</button>
+                        </div>
                         <p class="footer-text">Mouse to aim • Customize before starting</p>
             </div>
         </div>
@@ -111,8 +117,9 @@
             <div class="menu-panel">
                 <h1>PAUSED</h1>
                 <div class="menu-buttons">
-                    <button id="resumeBtn" class="primary-btn">RESUME</button>
-                    <button id="pauseRestartBtn" class="secondary-btn">RESTART</button>
+                    <button id="resumeBtn" class="primary-btn">Resume</button>
+                    <button id="pauseRestartBtn" class="secondary-btn">Restart</button>
+                    <button class="secondary-btn" onclick="openSettings()">&#9881; Settings</button>
                     <button id="quitBtn" class="secondary-btn">QUIT TO MENU</button>
                 </div>
             </div>
@@ -168,6 +175,17 @@
                     </div>
                 </div>
 
+                <div class="settings-row">
+                    <div class="settings-info">
+                        <span class="settings-label">Sound</span>
+                        <span class="settings-desc">Enable or disable all music and sound effects</span>
+                    </div>
+                    <div class="toggle-group">
+                        <button class="toggle-btn" id="soundOnBtn" onclick="setSetting('sound', true)">On</button>
+                        <button class="toggle-btn" id="soundOffBtn" onclick="setSetting('sound', false)">Off</button>
+                    </div>
+                </div>
+
                 <button class="primary-btn" style="margin-top:20px" onclick="closeSettings()">Done</button>
             </div>
         </div>
@@ -198,7 +216,7 @@
     <script src="/game/main.js"></script>
     <script>
         // ── Settings ──────────────────────────────────────────────
-        const _defaultSettings = { waveAuto: false, tooltips: true };
+        const _defaultSettings = { waveAuto: false, tooltips: true, sound: true };
 
         function _loadSettings() {
             try {
@@ -215,16 +233,20 @@
 
         function _applySettingsToGame(s) {
             if (window.game) {
-                window.game.autoStart  = s.waveAuto;
+                window.game.autoStart    = s.waveAuto;
                 window.game.showTooltips = s.tooltips;
+                window.game.soundEnabled = s.sound !== false;
+                window.game.applySoundSetting();
             }
         }
 
         function _syncToggleUI(s) {
             document.getElementById('waveManualBtn').classList.toggle('active', !s.waveAuto);
-            document.getElementById('waveAutoBtn').classList.toggle('active',   s.waveAuto);
-            document.getElementById('tooltipsOnBtn').classList.toggle('active',  s.tooltips);
-            document.getElementById('tooltipsOffBtn').classList.toggle('active', !s.tooltips);
+            document.getElementById('waveAutoBtn').classList.toggle('active',    s.waveAuto);
+            document.getElementById('tooltipsOnBtn').classList.toggle('active',  s.tooltips !== false);
+            document.getElementById('tooltipsOffBtn').classList.toggle('active', s.tooltips === false);
+            document.getElementById('soundOnBtn').classList.toggle('active',     s.sound !== false);
+            document.getElementById('soundOffBtn').classList.toggle('active',    s.sound === false);
         }
 
         function setSetting(key, value) {

@@ -36,6 +36,8 @@ render() {
         ctx.fillText(`Level: ${this.game.level}`, 10, 50);
         ctx.fillText(`EXP: ${this.game.exp}/${this.game.expToNextLevel}`, 10, 70);
         ctx.fillText(`Shield: ${this.game.player.health}/${this.game.player.maxHealth}`, 10, 90);
+        //Placeholder for money until we add a way to earn it
+        ctx.fillText('Money: $' + this.game.money,);
 
         // Wave progress bar
         const barWidth = 200;
@@ -191,4 +193,3 @@ render() {
         }
     }
 }
-

@@ -156,8 +156,10 @@ class Game {
 
         // Load persisted settings (set from the Settings panel)
         const _saved = (() => { try { return JSON.parse(localStorage.getItem('blitzDefenceSettings') || '{}'); } catch(e) { return {}; } })();
-        this.autoStart   = _saved.waveAuto  === true;  // default: manual
-        this.showTooltips = _saved.tooltips !== false;  // default: on
+        this.autoStart    = _saved.waveAuto  === true;  // default: manual
+        this.showTooltips = _saved.tooltips  !== false;  // default: on
+        this.soundEnabled = _saved.sound     !== false;  // default: on
+        this.applySoundSetting();
 
         // Multi-track spawning modes
         this.multiTrackMode = 'perWave'; // 'perEnemy', 'perWave', or 'single'
@@ -297,12 +299,23 @@ class Game {
     }
 
     playSound(soundName) {
+        if (!this.soundEnabled) return;
         const sound = this.soundEffects[soundName];
         if (sound) {
             sound.loop = false;
             sound.currentTime = 0;
             sound.play().catch(e => console.log('Sound play failed:', e));
         }
+    }
+
+    applySoundSetting() {
+        const enabled = this.soundEnabled;
+        const allAudio = [
+            this.backgroundMusic,
+            this.bossMusic,
+            ...Object.values(this.soundEffects)
+        ];
+        allAudio.forEach(el => { if (el) el.muted = !enabled; });
     }
 
     updatePlayerPreview() {
@@ -1597,6 +1610,8 @@ class Game {
         const _s = (() => { try { return JSON.parse(localStorage.getItem('blitzDefenceSettings') || '{}'); } catch(e) { return {}; } })();
         this.autoStart    = _s.waveAuto  === true;
         this.showTooltips = _s.tooltips  !== false;
+        this.soundEnabled = _s.sound     !== false;
+        this.applySoundSetting();
         this.spawnTimer = 0;
         this.totalEnemiesInWave = 0;
         this.enemiesSpawned = 0;

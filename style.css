@@ -603,7 +603,64 @@ label.checkbox {
     border-color: rgba(255, 255, 255, 0.2);
 }
 
-/* ── Settings button in gameUI bar ───────────────────────────── */
+/* ── Start menu bottom row (start then settings stacked below) ─ */
+.start-menu-bottom {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+/* Settings button shown below START GAME in the start menu */
+.settings-menu-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    border-radius: 6px;
+    color: rgba(255, 255, 255, 0.75);
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    padding: 7px 22px;
+    letter-spacing: 0.5px;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.settings-menu-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.3);
+    color: #fff;
+}
+
+/* ── Settings corner button — fixed to viewport top-right ──── */
+.settings-corner-btn {
+    position: fixed;
+    top: 14px;
+    right: 18px;
+    z-index: 9999;
+    background: rgba(30, 30, 40, 0.88);
+    border: 2px solid rgba(255, 255, 255, 0.35);
+    border-radius: 8px;
+    color: #fff;
+    font-size: 20px;
+    width: 42px;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+    line-height: 1;
+    padding: 0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+}
+
+.settings-corner-btn:hover {
+    background: rgba(80, 80, 100, 0.95);
+    border-color: #fff;
+}
+
+/* ── Settings button in gameUI bar (kept for legacy, hidden) ──── */
 .settings-icon-btn {
     background: rgba(255, 255, 255, 0.05);
     border: 2px solid rgba(255, 255, 255, 0.06);
@@ -619,6 +676,11 @@ label.checkbox {
 .settings-icon-btn:hover {
     background: rgba(255, 255, 255, 0.12);
     border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Settings modal sits above everything */
+#settingsModal {
+    z-index: 99999;
 }
 
 /* ── Settings modal panel ─────────────────────────────────────── */
