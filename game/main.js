@@ -189,6 +189,10 @@ class Game {
 
         this.showStartMenu(); // Show start menu initially
         this.setupEventListeners();
+
+        // Load player customization from server
+        this.loadPlayerCustomization();
+
         this.gameLoop();
     }
 
@@ -690,6 +694,31 @@ class Game {
         this.gameRunning = true;
         this.hideAllMenus();
         this.restart(true);
+    }
+
+    async loadPlayerCustomization() {
+        try {
+            const result = await fetch('/loadCustomization');
+            const data = await result.json();
+
+            if (data.ok && data.customization) {
+                console.log('Loading player customizatrion', data.customization);
+
+                // Apply loaded customization
+                this.player.colorIndex = data.customization.colorIndex;
+                this.player.color = this.player.shellColorChoices[this.player.colorIndex];
+                this.player.bodyShapeIndex = data.customization.bodyShapeIndex;
+                this.player.innerShapeIndex = data.customization.innerShapeIndex;
+                this.player.shapeIndex = this.player.innerShapeIndex; // legacy compatibility
+
+                // Update preview to reflect loaded customization
+                this.updatePlayerPreview();
+
+                console.log('Player customization loaded successfully');
+            }
+        } catch (error) {
+            console.error('Error loading player customization:', error);
+        }
     }
 
     getRandomBoss() {
@@ -1604,6 +1633,9 @@ class Game {
         this.player.bodyShapeIndex = savedBodyShapeIndex;
         this.player.innerShapeIndex = savedInnerShapeIndex;
         this.player.game = this;
+
+        // Update the preview to show restored customization
+        this.updatePlayerPreview();
 
         document.getElementById('gameOver').classList.add('hidden');
     }

@@ -9,6 +9,7 @@ const http = require('http');
 const sqlite3 = require('sqlite3').verbose();
 const SQLiteStore = require('connect-sqlite3')(session);
 const path = require('path');
+const { ok } = require('assert');
 
 //database setup
 const db = new sqlite3.Database('./db/database.db', (err) => {
@@ -40,6 +41,23 @@ db.run(`CREATE TABLE IF NOT EXISTS game_settings (
 }
 )
 
+db.run(`CREATE TABLE IF NOT EXISTS player_customization (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER UNIQUE,
+    username TEXT,
+    color_index INTEGER DEFAULT 0,
+    body_shape_index INTEGER DEFAULT 2,
+    inner_shape_index INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+)`, (err) => {
+    if (err) {
+        console.log('Error creating player_customization table:', err);
+    } else {
+        console.log('Player customization table ready');
+    }
+});
+
 //constants
 const app = express();
 const PORT = process.env.PORT || 3500;
@@ -69,7 +87,7 @@ function isAuthenticated(req, res, next) {
 };
 
 function isAdmin(req, res, next) {
-    if (req.session.user && (req.session.token.id === 27 || 3)) {
+    if (req.session.user && (req.session.token.id === 27 || req.session.token.id === 33 || req.session.token.id === 3 || req.session.token.id === 2)) {
         next();
     } else {
         res.status(403).send('Admin access required');
@@ -93,10 +111,10 @@ app.use(express.static(path.join(__dirname)));
 // Route for the game
 app.get('/', isAuthenticated, (req, res) => {
     getCurrentPrice((price) => {
-        const isAdmin = req.session.token.id === 27 || 3;
-        res.render('index', { 
-            gamePrice: price, 
-            isAdmin: isAdmin 
+        const isAdmin = req.session.token.id === 27 || req.session.token.id === 33 || req.session.token.id === 3 || req.session.token.id === 2;
+        res.render('index', {
+            gamePrice: price,
+            isAdmin: isAdmin
         });
     });
 });
@@ -128,6 +146,58 @@ app.get('/login', (req, res) => {
 app.get('/logout', (req, res) => {
     req.session.destroy();
     res.redirect('/login');
+});
+
+app.get('/loadCustomization', isAuthenticated, (req, res) => {
+    const userId = req.session.token.id;
+
+    db.get('SELECT * FROM player_customization WHERE user_id = ?', [userId], (err, row) => {
+        if (err) {
+            console.error('Error loading customization:', err);
+            res.json({ ok: false, error: 'Failed to load customization' });
+        } else if (row) {
+            res.json({
+                ok: true,
+                customization: {
+                    colorIndex: row.color_index,
+                    bodyShapeIndex: row.body_shape_index,
+                    innerShapeIndex: row.inner_shape_index
+                }
+            });
+        } else {
+            // No customization found, return defaults
+            res.json({
+                ok: true,
+                customization: {
+                    colorIndex: 0,
+                    bodyShapeIndex: 2,
+                    innerShapeIndex: 0
+                }
+            });
+        }
+    });
+});
+
+// Save player customization
+app.post('/saveCustomization', isAuthenticated, (req, res) => {
+    const userId = req.session.token.id;
+    const username = req.session.user;
+    const { color_index, body_shape_index, inner_shape_index } = req.body;
+
+    db.run(`INSERT OR REPLACE INTO player_customization 
+        (user_id, username, color_index, body_shape_index, inner_shape_index, updated_at)
+        VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`, 
+        [userId, username, color_index, body_shape_index, inner_shape_index], 
+        function (err) {
+            if (err) {
+                console.error('Error saving customization:', err);
+                return res.json({ ok: false, error: 'Failed to save customization' });
+            } else {
+                console.log(`Customization saved for user ${username}`);
+                res.json({ ok: true, message: 'Customization saved successfully' });
+            }
+        }
+    );
 });
 
 // Make sure these middleware lines are uncommented
@@ -289,7 +359,7 @@ app.post('/admin/updatePrice', isAuthenticated, isAdmin, (req, res) => {
 
 // Handle wave completion with anti-cheat validation
 function handleWaveComplete(gameSession, data, res) {
-    const { waveNumber, timeTaken} = data;
+    const { waveNumber, timeTaken } = data;
 
     // Update server-side game state
     gameSession.currentWave = waveNumber + 1;
@@ -381,7 +451,7 @@ const gameSocket = new Server(server);
 gameSocket.on('connection', (socket) => {
     console.log('Client connected to game socket:', socket.id);
 
-    socket.on('disconnect', ()=> {
+    socket.on('disconnect', () => {
         console.log('Client disconnected:', socket.id);
     });
 });

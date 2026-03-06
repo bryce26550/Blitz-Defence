@@ -77,18 +77,45 @@ class Player {
         }
     }
 
+    async saveCustomization() {
+        try {
+            const result = await fetch('/saveCustomization', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    color_index: this.colorIndex,
+                    body_shape_index: this.bodyShapeIndex,
+                    inner_shape_index: this.innerShapeIndex
+                })
+            });
+
+            const data = await result.json();
+            if (data.ok) {
+                console.log('Customization saved successfully');
+            } else {
+                console.error('Error saving customization:', data.error);
+            }
+
+        } catch (error) {
+            console.error('Error saving customization:', error);
+        }
+    }
+
     cycleShellColor() {
         this.colorIndex = (this.colorIndex + 1) % this.shellColorChoices.length;
         this.color = this.shellColorChoices[this.colorIndex];
+        this.saveCustomization();
     }
 
     cycleBodyShape() {
         this.bodyShapeIndex = (this.bodyShapeIndex + 1) % 7;
+        this.saveCustomization();
     }
 
     cycleInnerShape() {
         this.innerShapeIndex = (this.innerShapeIndex + 1) % 7;
         this.shapeIndex = this.innerShapeIndex; // legacy compatibility
+        this.saveCustomization();
     }
 
     // Legacy method
