@@ -436,6 +436,7 @@ class Game {
             'moneyValue': this.money,
             'currentWave': this.waveNumber,
             'totalWaves': this.totalWaves,
+            'towersValue': this.placedTowers.length,
         };
 
         for (const [id, value] of Object.entries(elements)) {
@@ -524,6 +525,20 @@ class Game {
         if (startBtn) {
             startBtn.addEventListener('click', () => {
                 pay();
+            });
+        }
+
+        // Admin test-start button (skips payment for local testing)
+        const testStartBtn = document.getElementById('testStartBtn');
+        if (testStartBtn) {
+            testStartBtn.addEventListener('click', async () => {
+                const r = await post('/adminStartGame', {});
+                if (r.ok) {
+                    this.startGame();
+                } else {
+                    console.error('Admin start failed:', r.error);
+                    alert('Test start failed: ' + (r.error || 'unknown error'));
+                }
             });
         }
 

@@ -84,7 +84,7 @@
                 <div class="tower-card-cost">$250</div>
             </div>
 
-            <div class="tower-card" id="towerBtn-railgun" onclick="window.game && window.game.selectTower('railgun')" title="Railgun \u2014 high damage, extreme range">
+            <div class="tower-card" id="towerBtn-railgun" onclick="window.game && window.game.selectTower('railgun')" title="Railgun \u2014 high damage, long range, slow fire rate">
                 <div class="tower-card-icon" style="background:#2196F3"></div>
                 <div class="tower-card-name">Railgun</div>
                 <div class="tower-card-stats">DMG 5 &bull; RNG 1000<br>Rate 3.5s</div>
@@ -99,6 +99,7 @@
                 <p class="subtitle">Place towers to defend against waves of Blitzing Pixels.</p>
                 <% if (isAdmin) { %>
                     <button id="adminPanelBtn" onclick="window.location.href='/admin'">Admin Panel</button>
+                    <button id="testStartBtn" class="secondary-btn" style="font-size:13px;padding:8px 18px;">&#9654; Test Start (Skip Payment)</button>
                     <% } %>
 
                         <div class="menu-content">
