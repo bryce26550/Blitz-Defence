@@ -286,6 +286,15 @@ app.post('/checkGameAccess', isAuthenticated, (req, res) => {
     }
 });
 
+// Admin: skip payment and create a free game session (for local testing)
+app.post('/adminStartGame', isAuthenticated, isAdmin, (req, res) => {
+    req.session.hasPaid = true;
+    req.session.save((err) => {
+        if (err) return res.json({ ok: false, error: 'Session save failed' });
+        res.json({ ok: true });
+    });
+});
+
 // Start game session endpoint
 app.post('/startGameSession', isAuthenticated, (req, res) => {
     if (!req.session.hasPaid) {
