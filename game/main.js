@@ -842,7 +842,10 @@ class Game {
 
         // Determine which path to use
         let pathName;
-        if (this.multiTrackMode === 'perEnemy') {
+        if (this.multiTrackMode === 'cricut') {
+            // Custom Cricut logic: alternate between 4Corners and Mirrored per wave
+            pathName = this.getCricutPathForEnemy();
+        } else if (this.multiTrackMode === 'perEnemy') {
             // Rotate path for each enemy
             pathName = availablePaths[this.currentTrackIndex % availablePaths.length];
             this.currentTrackIndex++;
@@ -853,6 +856,7 @@ class Game {
             // Single path mode - use first available
             pathName = availablePaths[0];
         }
+
 
         // Get spawn position and path
         const spawnPos = this.mapManager.getSpawnPosition(pathName);
@@ -884,6 +888,18 @@ class Game {
         console.log(`Spawned ${EnemyClass.name} on ${pathName} path (${this.enemiesSpawned}/${this.totalEnemiesInWave})`);
     }
 
+    getCricutPathForEnemy() {
+        const isOddWave = this.waveNumber % 2 === 1;
+
+        if (isOddWave) {
+            // Odd waves: Always use 4Corners
+            return 'corners';
+        } else {
+            // Even waves: Alternate between mirrored paths per enemy
+            const isEvenEnemy = this.enemiesSpawned % 2 === 0;
+            return isEvenEnemy ? 'mirroredTop' : 'mirroredBottom';
+        }
+    }
 
     clearAllEnemies() {
         // Create explosions for dramatic effect
@@ -1420,42 +1436,6 @@ class Game {
 
         };
 
-
-
-        // Enemy bullets vs player
-        for (let i = this.bullets.length - 1; i >= 0; i--) {
-            const bullet = this.bullets[i];
-            if (bullet && !bullet.isPlayer && this.checkCollision(bullet, this.player)) {
-                this.createExplosion(this.player.x, this.player.y);
-                this.playSound('playerHit');
-                this.bullets.splice(i, 1);
-                const dmg = bullet.damage || 1;
-                this.player.takeDamageAmount(dmg);
-                if (this.player.health <= 0) {
-                    this.gameOver();
-                }
-            }
-        };
-
-        // All enemies vs player
-        const allEnemies = [...this.enemies, ...this.shooters, ...this.tanks, ...this.sprinters, ...this.bosses];
-        for (let i = allEnemies.length - 1; i >= 0; i--) {
-            if (this.checkCollision(this.player, allEnemies[i])) {
-                this.createExplosion(allEnemies[i].x, allEnemies[i].y);
-                const dmg = Math.ceil((allEnemies[i].contactDamage || 1));
-                this.player.takeDamageAmount(dmg);
-                this.playSound('playerHit');
-
-                if (this.player.health <= 0) {
-                    this.gameOver();
-                }
-                const isBoss = this.bosses.includes(allEnemies[i]);
-                if (!isBoss) {
-                    this.removeEnemyFromArrays(allEnemies[i]);
-                }
-            }
-        };
-
         // Player vs walls - solid collision (no damage)
         for (let bossIndex = 0; bossIndex < this.bosses.length; bossIndex++) {
             const boss = this.bosses[bossIndex];
@@ -1500,7 +1480,6 @@ class Game {
             if (this.checkLineCollision(this.player, lineShot)) {
                 this.createExplosion(this.player.x, this.player.y);
                 this.playSound('playerHit');
-                this.player.takeDamageAmount(lineShot.damage);
                 lineShot.isActive = false; // Remove the lineshot after hit
 
                 if (this.player.health <= 0) {
@@ -1645,32 +1624,6 @@ class Game {
         this.ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
         this.ctx.fillRect(0, 0, this.width, this.height);
 
-        // Draw Wave Start button
-        if (this.started && this.gameRunning && this.enemiesAlive === 0 && (this.enemiesSpawned >= this.totalEnemiesInWave || this.totalEnemiesInWave === 0)) {
-
-            this.ctx.fillStyle = 'rgba(0, 255, 0, 1)';
-            this.ctx.fillRect(this.uiRects.waveStart.x, this.uiRects.waveStart.y, this.uiRects.waveStart.w, this.uiRects.waveStart.h);
-
-            // Draw white triangle pointing right
-            this.ctx.fillStyle = '#ffffff';
-            this.ctx.beginPath();
-
-            // Calculate triangle points (centered in button, pointing right)
-            const buttonCenterX = this.uiRects.waveStart.x + this.uiRects.waveStart.w / 2;
-            const buttonCenterY = this.uiRects.waveStart.y + this.uiRects.waveStart.h / 2;
-            const triangleSize = 25; // Adjust size as needed
-
-            // Triangle pointing right
-            this.ctx.moveTo(buttonCenterX - triangleSize / 3, buttonCenterY - triangleSize / 2); // Top left
-            this.ctx.lineTo(buttonCenterX + triangleSize / 2.5, buttonCenterY);                 // Right point
-            this.ctx.lineTo(buttonCenterX - triangleSize / 3, buttonCenterY + triangleSize / 2); // Bottom left
-            this.ctx.closePath();
-            this.ctx.fill();
-
-        }
-
-
-
         // Use MapManager for rendering paths and base
         this.mapManager.renderPaths(this.ctx);
         this.mapManager.renderBase(this.ctx);
@@ -1704,6 +1657,29 @@ class Game {
 
         // Render particles last
         this.particles.forEach(particle => particle.render(this.ctx));
+
+        // MOVE WAVE START BUTTON TO HERE (RENDER LAST SO IT'S ON TOP)
+        if (this.started && this.gameRunning && this.enemiesAlive === 0 && (this.enemiesSpawned >= this.totalEnemiesInWave || this.totalEnemiesInWave === 0)) {
+
+            this.ctx.fillStyle = 'rgba(0, 255, 0, 1)';
+            this.ctx.fillRect(this.uiRects.waveStart.x, this.uiRects.waveStart.y, this.uiRects.waveStart.w, this.uiRects.waveStart.h);
+
+            // Draw white triangle pointing right
+            this.ctx.fillStyle = '#ffffff';
+            this.ctx.beginPath();
+
+            // Calculate triangle points (centered in button, pointing right)
+            const buttonCenterX = this.uiRects.waveStart.x + this.uiRects.waveStart.w / 2;
+            const buttonCenterY = this.uiRects.waveStart.y + this.uiRects.waveStart.h / 2;
+            const triangleSize = 25; // Adjust size as needed
+
+            // Triangle pointing right
+            this.ctx.moveTo(buttonCenterX - triangleSize / 3, buttonCenterY - triangleSize / 2); // Top left
+            this.ctx.lineTo(buttonCenterX + triangleSize / 2.5, buttonCenterY);                 // Right point
+            this.ctx.lineTo(buttonCenterX - triangleSize / 3, buttonCenterY + triangleSize / 2); // Bottom left
+            this.ctx.closePath();
+            this.ctx.fill();
+        }
 
         // Update UI if game is running
         if (this.started && this.gameRunning) {
