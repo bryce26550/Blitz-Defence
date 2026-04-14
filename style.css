@@ -283,6 +283,22 @@ label.checkbox {
     margin-bottom: 40px;
 }
 
+/* Center control-list when used alone in the start menu (keeps layout flexible) */
+.menu-content .control-list {
+    margin: 0 auto;
+    text-align: center;
+    max-width: 460px;
+}
+
+.menu-content .control-list .control-item {
+    display: block;
+    margin: 6px 0;
+}
+
+.menu-content .control-list #mapBtn {
+    margin-top: 12px;
+}
+
 /* Player Preview */
 .player-preview {
     flex: 1;

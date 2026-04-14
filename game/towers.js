@@ -123,7 +123,7 @@ const TOWER_TYPES = {
         width: 40,
         height: 30,
         cost: 500,
-        color: '#9E9E9E',
+        color: '#7c7c7cff',
         image: '/img/burst.png'
     }
 };
