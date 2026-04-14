@@ -1104,4 +1104,46 @@ class MapManager {
         ctx.fillStyle = 'white';
         ctx.font = '16px Arial';
     }
+
+    /**
+     * Check whether a canvas point (px, py) lies on or very near any active
+     * path segment for the current map.
+     *
+     * @param {number} px - x coordinate to test
+     * @param {number} py - y coordinate to test
+     * @param {number} [tolerance=20] - min distance (px) from segment center line
+     *   that counts as "on track".  Should be >= half the rendered track lineWidth
+     *   plus half the tower width so towers cannot straddle the path.
+     * @returns {boolean}
+     */
+    isPointOnTrack(px, py, tolerance = 20) {
+        const paths = this.getAvailablePaths();
+        for (const pathName of paths) {
+            const waypoints = this.getPath(pathName);
+            if (!waypoints || waypoints.length < 2) continue;
+
+            for (let i = 0; i < waypoints.length - 1; i++) {
+                const ax = waypoints[i].x;
+                const ay = waypoints[i].y;
+                const bx = waypoints[i + 1].x;
+                const by = waypoints[i + 1].y;
+
+                // Project point onto segment and find closest point on it
+                const dx = bx - ax;
+                const dy = by - ay;
+                const lenSq = dx * dx + dy * dy;
+                let t = 0;
+                if (lenSq > 0) {
+                    t = ((px - ax) * dx + (py - ay) * dy) / lenSq;
+                    t = Math.max(0, Math.min(1, t));
+                }
+                const closestX = ax + t * dx;
+                const closestY = ay + t * dy;
+
+                const dist = Math.sqrt((px - closestX) ** 2 + (py - closestY) ** 2);
+                if (dist <= tolerance) return true;
+            }
+        }
+        return false;
+    }
 }

@@ -153,7 +153,13 @@ class Game {
         this.spawnTimer = 0;
         this.spawnDelay = 250; // 0.25 seconds in milliseconds
         this.waveStartAllowed = false; // Flag to control wave start button availability
-        this.autoStart = false; // Disable auto-starting next wave for manual control
+
+        // Load persisted settings
+        const _saved = (() => { try { return JSON.parse(localStorage.getItem('blitzDefenceSettings') || '{}'); } catch(e) { return {}; } })();
+        this.autoStart    = _saved.waveAuto  === true;  // default: manual
+        this.showTooltips = _saved.tooltips  !== false;  // default: on
+        this.soundEnabled = _saved.sound     !== false;  // default: on
+        this.applySoundSetting();
 
         // Multi-track spawning modes
         this.multiTrackMode = 'perWave'; // 'perEnemy', 'perWave', or 'single'
@@ -184,6 +190,12 @@ class Game {
 
         // Map management
         this.mapManager = new MapManager(this.width, this.height);
+
+        // Tower system
+        this.placedTowers = [];          // Tower instances placed on the map
+        this.selectedTower = null;       // Key from TOWER_TYPES currently selected in shop
+        this.selectedPlacedTower = null; // Currently selected placed tower for upgrades
+        this.towerShopRects = [];        // Clickable rects for the bottom shop panel
 
         this.renderer = new GameRenderer(this);
 
@@ -297,12 +309,23 @@ class Game {
     }
 
     playSound(soundName) {
+        if (!this.soundEnabled) return;
         const sound = this.soundEffects[soundName];
         if (sound) {
             sound.loop = false;
             sound.currentTime = 0;
             sound.play().catch(e => console.log('Sound play failed:', e));
         }
+    }
+
+    applySoundSetting() {
+        const enabled = this.soundEnabled;
+        const allAudio = [
+            this.backgroundMusic,
+            this.bossMusic,
+            ...Object.values(this.soundEffects)
+        ];
+        allAudio.forEach(el => { if (el) el.muted = !enabled; });
     }
 
     updatePlayerPreview() {
@@ -418,6 +441,7 @@ class Game {
             'moneyValue': this.money,
             'currentWave': this.waveNumber,
             'totalWaves': this.totalWaves,
+            'towersValue': this.placedTowers.length,
         };
 
         for (const [id, value] of Object.entries(elements)) {
@@ -428,6 +452,96 @@ class Game {
         const expProgress = (this.exp / this.expToNextLevel) * 100;
         const expProgressFill = document.getElementById('expProgressFill');
         if (expProgressFill) expProgressFill.style.width = expProgress + '%';
+        this.updateTowerShopUI();
+        this.updateTowerUpgradeUI();
+    }
+
+    findTowerAtPoint(x, y) {
+        for (let i = this.placedTowers.length - 1; i >= 0; i--) {
+            const tower = this.placedTowers[i];
+            if (!tower) continue;
+            if (x >= tower.x && x <= tower.x + tower.width && y >= tower.y && y <= tower.y + tower.height) {
+                return tower;
+            }
+        }
+        return null;
+    }
+
+    setSelectedPlacedTower(tower) {
+        this.selectedPlacedTower = tower || null;
+        this.placedTowers.forEach(item => {
+            if (item) item.showRange = (item === this.selectedPlacedTower);
+        });
+        this.updateTowerUpgradeUI();
+    }
+
+    updateTowerUpgradeUI() {
+        const panel = document.getElementById('towerUpgradePanel');
+        const title = document.getElementById('towerUpgradeTitle');
+        const body = document.getElementById('towerUpgradeBody');
+        const button = document.getElementById('towerUpgradeBtn');
+        if (!panel || !title || !body || !button) return;
+
+        if (!this.started || !this.gameRunning) {
+            panel.classList.add('hidden');
+            return;
+        }
+
+        panel.classList.remove('hidden');
+
+        if (!this.selectedPlacedTower) {
+            title.textContent = 'No Tower Selected';
+            body.innerHTML = 'Click a placed tower to view upgrades.';
+            button.textContent = 'Upgrade';
+            button.disabled = true;
+            button.dataset.upgradeId = '';
+            return;
+        }
+
+        const tower = this.selectedPlacedTower;
+        const nextUpgrades = tower.getAvailableUpgrades ? tower.getAvailableUpgrades() : [];
+        const nextUpgrade = nextUpgrades[0];
+
+        title.textContent = `${tower.name} (Lv ${tower.level || 1})`;
+
+        if (!nextUpgrade) {
+            body.innerHTML = 'No upgrades available yet for this tower.';
+            button.textContent = 'Maxed';
+            button.disabled = true;
+            button.dataset.upgradeId = '';
+            return;
+        }
+
+        let bodyHTML = '';
+        if (nextUpgrade.image) {
+            bodyHTML += `<img src="${nextUpgrade.image}" class="upgrade-preview-img" alt="${nextUpgrade.name}">`;
+        }
+        bodyHTML += `<div class="upgrade-info">
+            <div class="upgrade-name">${nextUpgrade.name}</div>
+            <div class="upgrade-description">${nextUpgrade.description}</div>
+            <div class="upgrade-cost">Cost: $${nextUpgrade.cost}</div>
+        </div>`;
+        
+        body.innerHTML = bodyHTML;
+        button.textContent = `Buy ${nextUpgrade.name} ($${nextUpgrade.cost})`;
+        button.disabled = this.money < nextUpgrade.cost;
+        button.dataset.upgradeId = nextUpgrade.id;
+    }
+
+    buySelectedTowerUpgrade() {
+        const tower = this.selectedPlacedTower;
+        if (!tower || !tower.getAvailableUpgrades || !tower.applyUpgrade) return;
+
+        const [nextUpgrade] = tower.getAvailableUpgrades();
+        if (!nextUpgrade) return;
+        if (this.money < nextUpgrade.cost) return;
+
+        const applied = tower.applyUpgrade(nextUpgrade.id);
+        if (!applied) return;
+
+        this.money -= applied.cost;
+        this.updateGameUI();
+        console.log(`Upgraded ${tower.name} with ${applied.name}. Money left: ${this.money}`);
     }
 
 
@@ -505,6 +619,20 @@ class Game {
         if (startBtn) {
             startBtn.addEventListener('click', () => {
                 pay();
+            });
+        }
+
+        // Admin test-start button (skips payment for local testing)
+        const testStartBtn = document.getElementById('testStartBtn');
+        if (testStartBtn) {
+            testStartBtn.addEventListener('click', async () => {
+                const r = await post('/adminStartGame', {});
+                if (r.ok) {
+                    this.startGame();
+                } else {
+                    console.error('Admin start failed:', r.error);
+                    alert('Test start failed: ' + (r.error || 'unknown error'));
+                }
             });
         }
 
@@ -606,6 +734,13 @@ class Game {
             });
         }
 
+        const towerUpgradeBtn = document.getElementById('towerUpgradeBtn');
+        if (towerUpgradeBtn) {
+            towerUpgradeBtn.addEventListener('click', () => {
+                this.buySelectedTowerUpgrade();
+            });
+        }
+
 
         // Player preview click
         const playerPreview = document.getElementById('playerPreview');
@@ -619,6 +754,39 @@ class Game {
     }
 
     handleCanvasClick(x, y, e) {
+        if (this.started && this.gameRunning && !this.selectedTower) {
+            const clickedTower = this.findTowerAtPoint(x, y);
+            this.setSelectedPlacedTower(clickedTower);
+            if (clickedTower) return;
+        }
+
+        // Tower placement on the map 
+        if (this.selectedTower && this.started && this.gameRunning) {
+            const def = TOWER_TYPES[this.selectedTower];
+
+            // Check whether the player can afford the tower
+            if (this.money < def.cost) {
+                console.log(`Not enough money to place ${def.name} (need ${def.cost}, have ${this.money})`);
+                return;
+            }
+
+            //  Check whether the placement point overlaps the track
+            const tolerance = 5 + Math.max(def.width, def.height) / 2 + 5;
+            if (this.mapManager.isPointOnTrack(x, y, tolerance)) {
+                console.log('Cannot place tower on the track!');
+                return;
+            }
+
+            // Place the tower and deduct cost
+            const placedTower = new Tower(x, y, this.selectedTower);
+            this.placedTowers.push(placedTower);
+            this.setSelectedPlacedTower(placedTower);
+            this.money -= def.cost;
+            this.updateGameUI();
+            console.log(`Placed ${def.name} at (${Math.round(x)}, ${Math.round(y)}). Money left: ${this.money}`);
+            return;
+        }
+
         // Check if wave start button was clicked
         if (this.pointInRect(x, y, this.uiRects.waveStart)) {
             console.log("Wave start button clicked!");
@@ -647,6 +815,243 @@ class Game {
 
 
 
+    /**
+     * Select or deselect a tower type for placement.
+     * Called by the HTML shop panel buttons.
+     */
+    selectTower(key) {
+        this.selectedTower = (this.selectedTower === key) ? null : key;
+        if (this.selectedTower) {
+            this.setSelectedPlacedTower(null);
+        }
+        this.updateTowerShopUI();
+    }
+
+    formatTowerShopStats(def) {
+        const parts = [];
+
+        if (typeof def.damage === 'number') {
+            parts.push(`DMG ${def.damage}`);
+        }
+
+        if (typeof def.range === 'number') {
+            parts.push(`RNG ${def.range}`);
+        }
+
+        if (typeof def.fireRate === 'number') {
+            const seconds = def.fireRate / 1000;
+            parts.push(`Rate ${Number.isInteger(seconds) ? seconds.toFixed(0) : seconds.toFixed(2)}s`);
+        }
+
+        if (typeof def.projectileCount === 'number' && def.projectileCount > 1) {
+            parts.push(`${def.projectileCount} shots`);
+        }
+
+        if (!parts.length) {
+            parts.push('Support tower');
+        }
+
+        return parts.join(' | ');
+    }
+
+    buildTowerShopCards(container) {
+        container.innerHTML = '';
+
+        Object.entries(TOWER_TYPES).forEach(([key, def]) => {
+            const towerCost = Number.isFinite(def.cost) ? def.cost : 0;
+            const card = document.createElement('div');
+            card.className = 'tower-card';
+            card.id = `towerBtn-${key}`;
+            card.title = `Select ${def.name} to buy for placement`;
+            card.addEventListener('click', () => this.selectTower(key));
+            
+            const iconDiv = document.createElement('div');
+            iconDiv.className = 'tower-card-icon';
+            if (def.image) {
+                iconDiv.style.backgroundImage = `url('${def.image}')`;
+                iconDiv.style.backgroundSize = 'cover';
+                iconDiv.style.backgroundPosition = 'center';
+            } else {
+                iconDiv.style.background = def.color || '#777';
+            }
+            
+            card.appendChild(iconDiv);
+            
+            const nameDiv = document.createElement('div');
+            nameDiv.className = 'tower-card-name';
+            nameDiv.textContent = def.name;
+            card.appendChild(nameDiv);
+            
+            const statsDiv = document.createElement('div');
+            statsDiv.className = 'tower-card-stats';
+            statsDiv.textContent = this.formatTowerShopStats(def);
+            card.appendChild(statsDiv);
+            
+            const actionDiv = document.createElement('div');
+            actionDiv.className = 'tower-card-action';
+            actionDiv.textContent = 'Buy tower';
+            card.appendChild(actionDiv);
+            
+            const costDiv = document.createElement('div');
+            costDiv.className = 'tower-card-cost';
+            costDiv.textContent = `$${towerCost}`;
+            card.appendChild(costDiv);
+            
+            container.appendChild(card);
+        });
+    }
+
+    /**
+     * Refresh affordability and selection state on all HTML tower shop cards.
+     */
+    updateTowerShopUI() {
+        const shop = document.getElementById('towerShop');
+        const hint = document.getElementById('towerShopHint');
+        const cards = document.getElementById('towerShopCards');
+
+        if (!shop || !cards) return;
+
+        if (!this.started || !this.gameRunning) {
+            shop.classList.add('hidden');
+            return;
+        }
+
+        shop.classList.remove('hidden');
+
+        if (!cards.dataset.rendered) {
+            this.buildTowerShopCards(cards);
+            cards.dataset.rendered = 'true';
+        }
+
+        const selectedDef = this.selectedTower ? TOWER_TYPES[this.selectedTower] : null;
+        if (hint) {
+            const selectedCost = selectedDef && Number.isFinite(selectedDef.cost) ? selectedDef.cost : 0;
+            hint.textContent = selectedDef
+                ? `Selected ${selectedDef.name}. Click the map to place it for $${selectedCost}.`
+                : 'Select a tower to buy, then click the map to place it.';
+        }
+
+        Object.keys(TOWER_TYPES).forEach(key => {
+            const btn = document.getElementById('towerBtn-' + key);
+            if (!btn) return;
+            const def = TOWER_TYPES[key];
+            const towerCost = Number.isFinite(def.cost) ? def.cost : 0;
+            const canAfford = this.money >= towerCost;
+            btn.classList.toggle('selected', this.selectedTower === key);
+            btn.classList.toggle('unaffordable', !canAfford);
+
+            const action = btn.querySelector('.tower-card-action');
+            if (action) {
+                action.textContent = this.selectedTower === key ? 'Selected' : 'Buy tower';
+            }
+        });
+    }
+
+    /**
+     * (Legacy) Canvas-based tower shop — no longer called; HTML panel is used instead.
+     * Kept here in case a canvas fallback is needed.
+     */
+    renderTowerShop() {
+        const { ctx } = this;
+        const types = Object.keys(TOWER_TYPES);
+        const btnW = 80;
+        const btnH = 70;
+        const gap = 8;
+        const totalW = types.length * (btnW + gap) - gap;
+        const shopX = this.width - totalW - 16;
+        const shopY = this.height - btnH - 16;
+
+        this.towerShopRects = [];
+
+        // Panel background
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+        ctx.fillRect(shopX - 8, shopY - 8, totalW + 16, btnH + 16);
+
+        types.forEach((key, i) => {
+            const def = TOWER_TYPES[key];
+            const btnX = shopX + i * (btnW + gap);
+            const isSelected = this.selectedTower === key;
+            const canAfford = this.money >= def.cost;
+
+            // Button background
+            ctx.fillStyle = isSelected
+                ? 'rgba(255, 255, 255, 0.28)'
+                : canAfford ? 'rgba(40, 40, 40, 0.8)' : 'rgba(60, 60, 60, 0.5)';
+            ctx.fillRect(btnX, shopY, btnW, btnH);
+
+            // Border (gold when selected, tower colour when affordable, grey otherwise)
+            ctx.strokeStyle = isSelected ? '#FFD700' : canAfford ? def.color : '#555555';
+            ctx.lineWidth = isSelected ? 2.5 : 1.5;
+            ctx.strokeRect(btnX, shopY, btnW, btnH);
+
+            // Tower icon 
+            ctx.fillStyle = canAfford ? def.color : '#666666';
+            const iconSize = 20;
+            ctx.fillRect(btnX + (btnW - iconSize) / 2, shopY + 8, iconSize, iconSize);
+
+            // Name label
+            ctx.fillStyle = canAfford ? '#ffffff' : '#888888';
+            ctx.font = '11px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(def.name, btnX + btnW / 2, shopY + 44);
+
+            // Cost label
+            ctx.fillStyle = canAfford ? '#FFD700' : '#666666';
+            ctx.font = '11px Arial';
+            ctx.fillText('$' + def.cost, btnX + btnW / 2, shopY + 58);
+
+            this.towerShopRects.push({ x: btnX, y: shopY, w: btnW, h: btnH, key });
+        });
+
+        // Restore alignment default
+        ctx.textAlign = 'left';
+    }
+
+    /**
+     * Render a semi-transparent preview of the tower under the cursor while
+     * the player has a tower type selected.  Shows red when placement is
+     * invalid (on track or can't afford), green-tinted when valid.
+     */
+    renderTowerPlacementPreview() {
+        if (!this.selectedTower) return;
+        const { ctx } = this;
+        const def = TOWER_TYPES[this.selectedTower];
+
+        const tolerance = 5 + Math.max(def.width, def.height) / 2 + 5;
+        const onTrack = this.mapManager.isPointOnTrack(this.mouseX, this.mouseY, tolerance);
+        const canAfford = this.money >= def.cost;
+        const valid = !onTrack && canAfford;
+
+        const px = this.mouseX - def.width / 2;
+        const py = this.mouseY - def.height / 2;
+
+        // Range ring
+        ctx.beginPath();
+        ctx.arc(this.mouseX, this.mouseY, def.range, 0, Math.PI * 2);
+        ctx.strokeStyle = valid ? 'rgba(255,255,255,0.20)' : 'rgba(255,0,0,0.25)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        // Tower ghost
+        ctx.fillStyle = valid ? def.color + 'aa' : 'rgba(220, 30, 30, 0.55)';
+        ctx.fillRect(px, py, def.width, def.height);
+        ctx.strokeStyle = valid ? '#ffffff' : '#ff4444';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(px, py, def.width, def.height);
+
+        // Tooltip
+        const label = !canAfford
+            ? `Need $${def.cost} (have $${this.money})`
+            : onTrack ? 'Cannot place on track' : `Place ${def.name} ($${def.cost})`;
+        ctx.fillStyle = valid ? 'rgba(0,0,0,0.7)' : 'rgba(180,0,0,0.7)';
+        const tw = ctx.measureText(label).width + 12;
+        ctx.fillRect(this.mouseX + 14, this.mouseY - 22, tw, 20);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '12px Arial';
+        ctx.textAlign = 'left';
+        ctx.fillText(label, this.mouseX + 20, this.mouseY - 7);
+    }
+
     quitToMenu() {
         console.log('quitToMenu called');
 
@@ -655,6 +1060,15 @@ class Game {
         this.gameRunning = false;
         this.gamePaused = false;
         this.showLevelUp = false;
+        this.placedTowers = [];
+        this.selectedTower = null;
+        this.selectedPlacedTower = null;
+
+        // Hide the HTML tower shop when returning to menu
+        const _ts = document.getElementById('towerShop');
+        if (_ts) _ts.classList.add('hidden');
+        const _tu = document.getElementById('towerUpgradePanel');
+        if (_tu) _tu.classList.add('hidden');
 
         // Reset payment
         // hasPaid = false;
@@ -772,6 +1186,141 @@ class Game {
 
         this.checkWaveProgress();
         this.checkLevelUp();
+
+        // Update placed towers (acquire targets & fire)
+        const allEnemies = [
+            ...this.enemies,
+            ...this.shooters,
+            ...this.tanks,
+            ...this.sprinters,
+            ...this.bosses
+        ];
+
+        this.updateSupportTowers(deltaTime, allEnemies);
+
+        this.placedTowers.forEach(tower => {
+            tower.update(deltaTime, allEnemies);
+            tower.shoot(this.bullets);
+        });
+    }
+
+    findNearestEnemy(x, y, enemies, range = Infinity) {
+        let nearest = null;
+        let nearestDist = range;
+
+        for (let i = 0; i < enemies.length; i++) {
+            const enemy = enemies[i];
+            if (!enemy || enemy.hp <= 0) continue;
+            if (enemy.hidden) continue;
+
+            const ex = enemy.x + (enemy.width || 0) / 2;
+            const ey = enemy.y + (enemy.height || 0) / 2;
+            const dx = ex - x;
+            const dy = ey - y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < nearestDist) {
+                nearestDist = dist;
+                nearest = enemy;
+            }
+        }
+
+        return nearest;
+    }
+
+    spawnSummonProjectile(tower, target, bossSummon = false) {
+        if (!target) return;
+
+        const cx = tower.x + tower.width / 2;
+        const cy = tower.y + tower.height / 2;
+        const tx = target.x + (target.width || 0) / 2;
+        const ty = target.y + (target.height || 0) / 2;
+        const dx = tx - cx;
+        const dy = ty - cy;
+        const len = Math.sqrt(dx * dx + dy * dy) || 1;
+
+        const moveScale = Math.max(0.5, tower.summonMoveSpeedMultiplier || 1);
+        const speed = (tower.projectileSpeed || 1) * moveScale;
+
+        const bullet = new Bullet(cx, cy, true);
+        bullet.width = bossSummon ? 10 : 7;
+        bullet.height = bossSummon ? 10 : 7;
+        bullet.vx = (dx / len) * speed;
+        bullet.vy = (dy / len) * speed;
+        bullet.damage = Math.max(
+            1,
+            Math.round((tower.damage || 1) * (tower.summonDamageMultiplier || 1) * (bossSummon ? 2 : 1))
+        );
+        bullet.pierce = 1;
+        bullet.isPlayer = true;
+        bullet.fromTower = true;
+        bullet.sourceTower = tower;
+        bullet.towerColor = bossSummon ? '#ffcc66' : tower.color;
+        bullet.damageReinforced = true;
+        bullet.lifeRemaining = 2200;
+        this.bullets.push(bullet);
+    }
+
+    updateSupportTowers(deltaTime, allEnemies) {
+        for (let i = 0; i < this.placedTowers.length; i++) {
+            const tower = this.placedTowers[i];
+            if (!tower) continue;
+
+            if (tower.type === 'hacker') {
+                tower.hackCooldown -= deltaTime;
+                if (tower.hackCooldown <= 0) {
+                    const reward = Math.max(
+                        1,
+                        Math.round((4 + this.waveNumber * 0.4) * (tower.hackRewardMultiplier || 1))
+                    );
+                    this.money += reward;
+
+                    if (
+                        tower.statusCleanseChance > 0 &&
+                        allEnemies.length > 0 &&
+                        Math.random() < tower.statusCleanseChance
+                    ) {
+                        const index = Math.floor(Math.random() * allEnemies.length);
+                        const target = allEnemies[index];
+                        if (target) {
+                            target.hidden = false;
+                            if ('isDashing' in target) target.isDashing = false;
+                            if ('stunTimer' in target) target.stunTimer = 0;
+                        }
+                    }
+
+                    tower.hackCooldown = Math.max(200, tower.hackInterval || 2500);
+                }
+            }
+
+            if (tower.type === 'generator') {
+                tower.regenCooldown -= deltaTime;
+                if (tower.regenCooldown <= 0) {
+                    this.maxSheild = Math.max(this.maxSheild, 250 + (tower.regenMax || 0));
+                    this.healBase(tower.regenAmount || 0);
+                    tower.regenCooldown = Math.max(250, tower.regenSpeed || 5000);
+                }
+            }
+
+            if (tower.type === 'overlord') {
+                tower.summonCooldown -= deltaTime;
+                if (tower.summonCooldown <= 0) {
+                    const summonCount = Math.max(1, tower.summonCount || 1);
+                    for (let s = 0; s < summonCount; s++) {
+                        const target = this.findNearestEnemy(
+                            tower.x + tower.width / 2,
+                            tower.y + tower.height / 2,
+                            allEnemies,
+                            tower.range ? Math.max(tower.range * 6, 160) : 220
+                        );
+                        if (!target) break;
+                        const bossSummon = Math.random() < (tower.summonBossChance || 0);
+                        this.spawnSummonProjectile(tower, target, bossSummon);
+                    }
+
+                    tower.summonCooldown = Math.max(250, tower.summonSpeed || 2500);
+                }
+            }
+        }
     }
 
     isBossWave() {
@@ -1086,6 +1635,11 @@ class Game {
         this.bullets = this.bullets.filter(bullet => {
             bullet.update(deltaTime);
 
+            if (typeof bullet.lifeRemaining === 'number') {
+                bullet.lifeRemaining -= deltaTime;
+                if (bullet.lifeRemaining <= 0) return false;
+            }
+
             // Ricochet bullets off walls
             if (bullet.ricochet && bullet.isPlayer) {
                 if (bullet.x <= 0 || bullet.x + bullet.width >= this.width) {
@@ -1212,41 +1766,61 @@ class Game {
 
         // Update enemies
         this.enemies = this.enemies.filter(enemy => {
-            enemy.update(deltaTime);
+            if ((enemy.stunTimer || 0) > 0) {
+                enemy.stunTimer -= deltaTime;
+            } else {
+                enemy.update(deltaTime);
+            }
             return enemy.hp > 0;
         });
 
         // Update shooters
         this.shooters = this.shooters.filter(shooter => {
-            shooter.update(deltaTime);
+            if ((shooter.stunTimer || 0) > 0) {
+                shooter.stunTimer -= deltaTime;
+            } else {
+                shooter.update(deltaTime);
+            }
             return shooter.hp > 0;
         });
 
         // Update tanks
         this.tanks = this.tanks.filter(tank => {
-            tank.update(deltaTime);
+            if ((tank.stunTimer || 0) > 0) {
+                tank.stunTimer -= deltaTime;
+            } else {
+                tank.update(deltaTime);
+            }
             return tank.hp > 0;
         });
 
         // Update sprinters
         this.sprinters = this.sprinters.filter(sprinter => {
-            sprinter.update(deltaTime);
+            if ((sprinter.stunTimer || 0) > 0) {
+                sprinter.stunTimer -= deltaTime;
+            } else {
+                sprinter.update(deltaTime);
+            }
             return sprinter.hp > 0;
         });
 
         // Update bosses
         this.bosses = this.bosses.filter(boss => {
-            if (boss.constructor.name === 'Railgun') {
-                // Railgun needs lineshots as second parameter
-                boss.update(deltaTime, this.lineshots, this.player);
+            if ((boss.stunTimer || 0) > 0) {
+                boss.stunTimer -= deltaTime;
             } else {
-                // Other bosses use the standard format
-                boss.update(deltaTime, this.bullets, this.player, {
-                    enemies: this.enemies,
-                    shooters: this.shooters,
-                    tanks: this.tanks,
-                    sprinters: this.sprinters,
-                });
+                if (boss.constructor.name === 'Railgun') {
+                    // Railgun needs lineshots as second parameter
+                    boss.update(deltaTime, this.lineshots, this.player);
+                } else {
+                    // Other bosses use the standard format
+                    boss.update(deltaTime, this.bullets, this.player, {
+                        enemies: this.enemies,
+                        shooters: this.shooters,
+                        tanks: this.tanks,
+                        sprinters: this.sprinters,
+                    });
+                }
             }
             return boss.hp > 0;
         });
@@ -1273,6 +1847,43 @@ class Game {
     }
 
     checkCollisions() {
+        const getTowerAdjustedDamage = (bullet, target) => {
+            let damage = bullet.damage || 1;
+            if (target.reinforced && !bullet.damageReinforced) {
+                damage = Math.max(1, Math.ceil(damage * 0.5));
+            }
+            return damage;
+        };
+
+        const applyTowerHitEffects = (bullet, target) => {
+            if (!bullet.fromTower) return;
+
+            if (bullet.stunChance && Math.random() < bullet.stunChance) {
+                target.stunTimer = Math.max(target.stunTimer || 0, 800);
+            }
+
+            if (bullet.clusterOnExplosion && (bullet.clusterCount || 0) > 0) {
+                const originX = target.x + (target.width || 0) / 2;
+                const originY = target.y + (target.height || 0) / 2;
+                const clusterDamage = Math.max(1, Math.round((bullet.damage || 1) * 0.35));
+                for (let c = 0; c < bullet.clusterCount; c++) {
+                    const angle = (Math.PI * 2 * c) / bullet.clusterCount;
+                    const shard = new Bullet(originX, originY, true);
+                    shard.width = 4;
+                    shard.height = 4;
+                    shard.vx = Math.cos(angle) * 0.55;
+                    shard.vy = Math.sin(angle) * 0.55;
+                    shard.damage = clusterDamage;
+                    shard.pierce = 1;
+                    shard.fromTower = true;
+                    shard.sourceTower = bullet.sourceTower;
+                    shard.towerColor = bullet.towerColor;
+                    shard.lifeRemaining = 650;
+                    this.bullets.push(shard);
+                }
+            }
+        };
+
         // Player bullets vs all enemies
         for (let i = this.bullets.length - 1; i >= 0; i--) {
             const bullet = this.bullets[i];
@@ -1285,9 +1896,11 @@ class Game {
             for (let j = this.enemies.length - 1; j >= 0; j--) {
                 if (this.checkCollision(bullet, this.enemies[j])) {
                     const enemy = this.enemies[j];
+                    const damage = getTowerAdjustedDamage(bullet, enemy);
 
                     // Damage the enemy first
-                    enemy.takeDamage ? enemy.takeDamage(bullet.damage) : (enemy.hp -= bullet.damage);
+                    enemy.takeDamage ? enemy.takeDamage(damage) : (enemy.hp -= damage);
+                    applyTowerHitEffects(bullet, enemy);
                     this.createExplosion(bullet.x, bullet.y);
                     this.playSound('enemyHit');
 
@@ -1311,9 +1924,11 @@ class Game {
             for (let j = this.shooters.length - 1; j >= 0 && hitCount < bullet.pierce; j--) {
                 if (this.checkCollision(bullet, this.shooters[j])) {
                     const shooter = this.shooters[j];
+                    const damage = getTowerAdjustedDamage(bullet, shooter);
 
                     // Damage the enemy first
-                    shooter.takeDamage ? shooter.takeDamage(bullet.damage) : (shooter.hp -= bullet.damage);
+                    shooter.takeDamage ? shooter.takeDamage(damage) : (shooter.hp -= damage);
+                    applyTowerHitEffects(bullet, shooter);
                     this.createExplosion(bullet.x, bullet.y);
                     this.playSound('enemyHit');
 
@@ -1333,7 +1948,9 @@ class Game {
             // Check vs tanks
             for (let j = this.tanks.length - 1; j >= 0 && hitCount < bullet.pierce; j--) {
                 if (this.checkCollision(bullet, this.tanks[j])) {
-                    this.tanks[j].takeDamage(bullet.damage);
+                    const damage = getTowerAdjustedDamage(bullet, this.tanks[j]);
+                    this.tanks[j].takeDamage(damage);
+                    applyTowerHitEffects(bullet, this.tanks[j]);
                     this.createExplosion(bullet.x, bullet.y);
                     this.playSound('enemyHit');
 
@@ -1355,7 +1972,9 @@ class Game {
             // Check vs sprinters
             for (let j = this.sprinters.length - 1; j >= 0 && hitCount < bullet.pierce; j--) {
                 if (this.checkCollision(bullet, this.sprinters[j])) {
-                    this.sprinters[j].takeDamage(bullet.damage);
+                    const damage = getTowerAdjustedDamage(bullet, this.sprinters[j]);
+                    this.sprinters[j].takeDamage(damage);
+                    applyTowerHitEffects(bullet, this.sprinters[j]);
                     this.createExplosion(bullet.x, bullet.y);
                     this.playSound('enemyHit');
 
@@ -1377,7 +1996,9 @@ class Game {
             // Check vs bosses
             for (let j = this.bosses.length - 1; j >= 0 && hitCount < bullet.pierce; j--) {
                 if (this.checkCollision(bullet, this.bosses[j])) {
-                    this.bosses[j].takeDamage(bullet.damage);
+                    const damage = getTowerAdjustedDamage(bullet, this.bosses[j]);
+                    this.bosses[j].takeDamage(damage);
+                    applyTowerHitEffects(bullet, this.bosses[j]);
                     this.createExplosion(bullet.x, bullet.y);
                     this.playSound('enemyHit');
 
@@ -1580,6 +2201,9 @@ class Game {
         this.sprinters = [];
         this.bosses = [];
         this.particles = [];
+        this.placedTowers = [];
+        this.selectedTower = null;
+        this.selectedPlacedTower = null;
         this.exp = 0;
         this.level = 1;
         this.money = 250;
@@ -1597,7 +2221,12 @@ class Game {
         this.currentWaveIndex = 0;
         this.waveComplete = false;
         this.waveStartAllowed = false;
-        this.autoStart = false; // Disable auto-starting next wave for manual control
+        // Re-read persisted settings
+        const _s = (() => { try { return JSON.parse(localStorage.getItem('blitzDefenceSettings') || '{}'); } catch(e) { return {}; } })();
+        this.autoStart    = _s.waveAuto  === true;
+        this.showTooltips = _s.tooltips  !== false;
+        this.soundEnabled = _s.sound     !== false;
+        this.applySoundSetting();
         this.spawnTimer = 0;
         this.totalEnemiesInWave = 0;
         this.enemiesSpawned = 0;
@@ -1617,6 +2246,27 @@ class Game {
         this.updatePlayerPreview();
 
         document.getElementById('gameOver').classList.add('hidden');
+
+        // Show / hide the HTML tower shop panel
+        const _towerShop = document.getElementById('towerShop');
+        if (_towerShop) {
+            if (startImmediately) {
+                _towerShop.classList.remove('hidden');
+                this.updateTowerShopUI();
+            } else {
+                _towerShop.classList.add('hidden');
+            }
+        }
+
+        const _towerUpgrade = document.getElementById('towerUpgradePanel');
+        if (_towerUpgrade) {
+            if (startImmediately) {
+                _towerUpgrade.classList.remove('hidden');
+                this.updateTowerUpgradeUI();
+            } else {
+                _towerUpgrade.classList.add('hidden');
+            }
+        }
     }
 
     render() {
@@ -1628,6 +2278,14 @@ class Game {
         this.mapManager.renderPaths(this.ctx);
         this.mapManager.renderBase(this.ctx);
         this.mapManager.renderMapName(this.ctx);
+
+        // Render placed towers (before enemies so they appear beneath)
+        this.placedTowers.forEach(tower => tower.render(this.ctx));
+
+        // Tower placement preview (ghost under cursor when a tower is selected)
+        if (this.started && this.gameRunning && this.selectedTower) {
+            this.renderTowerPlacementPreview();
+        }
 
         // Draw game objects
         this.player.render(this.ctx);
