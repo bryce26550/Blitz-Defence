@@ -757,29 +757,62 @@ label.checkbox {
     color: #fff;
 }
 
-/* ── Tower Shop Panel ──*/
-#towerShop {
-    position: absolute;
-    bottom: 14px;
-    left: 50%;
-    transform: translateX(-50%);
+/* ── Sliding Store Dock ──*/
+#storeDock {
+    position: fixed;
+    top: 50%;
+    left: 14px;
+    z-index: 30;
+    display: flex;
+    align-items: flex-start;
+    transform: translateX(calc(-100% + 48px)) translateY(-50%);
+    transition: transform 0.28s ease;
+}
+
+#storeDock.open {
+    transform: translateX(0) translateY(-50%);
+}
+
+.store-toggle-btn {
+    width: 48px;
+    min-height: 130px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-right: none;
+    border-radius: 10px 0 0 10px;
+    background: linear-gradient(180deg, #2f8f43, #1e5d2a);
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    cursor: pointer;
+    box-shadow: -4px 8px 18px rgba(0, 0, 0, 0.35);
+}
+
+.store-toggle-btn:hover {
+    background: linear-gradient(180deg, #3aa955, #287936);
+}
+
+.store-panels {
+    width: min(300px, calc(100vw - 86px));
     display: flex;
     flex-direction: column;
     gap: 10px;
-    z-index: 25;
-    min-width: 340px;
-    max-width: min(760px, calc(100vw - 32px));
+}
+
+#towerShop {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
     background: linear-gradient(180deg, rgba(10, 10, 10, 0.88), rgba(25, 25, 25, 0.94));
     padding: 12px 14px 14px;
-    border-radius: 14px;
+    border-radius: 12px 0 0 0;
     border: 1px solid rgba(255, 255, 255, 0.14);
     box-shadow: 0 14px 30px rgba(0, 0, 0, 0.38);
     backdrop-filter: blur(6px);
     pointer-events: all;
-}
-
-#towerShop.hidden {
-    display: none;
 }
 
 .tower-shop-header {
@@ -808,13 +841,13 @@ label.checkbox {
 
 .tower-shop-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(98px, 1fr));
     gap: 8px;
 }
 
 .tower-card {
     width: 100%;
-    min-height: 128px;
+    min-height: 116px;
     background: rgba(30, 30, 30, 0.92);
     border: 1px solid rgba(255, 255, 255, 0.16);
     border-radius: 10px;
@@ -879,20 +912,25 @@ label.checkbox {
 }
 
 #towerUpgradePanel {
-    position: absolute;
-    right: 14px;
-    bottom: 14px;
-    width: 260px;
-    z-index: 26;
+    width: auto;
     background: rgba(0, 0, 0, 0.78);
     border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 10px;
+    border-radius: 0 0 0 12px;
     padding: 10px;
     text-align: left;
 }
 
-#towerUpgradePanel.hidden {
-    display: none;
+#towerUpgradePanel.inactive {
+    background: rgba(32, 32, 32, 0.82);
+    border-color: rgba(160, 160, 160, 0.35);
+}
+
+#towerUpgradePanel.inactive .tower-upgrade-title,
+#towerUpgradePanel.inactive .tower-upgrade-body,
+#towerUpgradePanel.inactive .upgrade-name,
+#towerUpgradePanel.inactive .upgrade-description,
+#towerUpgradePanel.inactive .upgrade-cost {
+    color: #919191;
 }
 
 .tower-upgrade-title {
@@ -973,4 +1011,29 @@ label.checkbox {
     justify-content: center;
     gap: 20px;
     margin-top: 24px;
+}
+
+@media (max-width: 900px) {
+    #storeDock {
+        left: 8px;
+        transform: translateX(calc(-100% + 42px)) translateY(-50%);
+    }
+
+    #storeDock.open {
+        transform: translateX(0) translateY(-50%);
+    }
+
+    .store-toggle-btn {
+        width: 42px;
+        min-height: 110px;
+        font-size: 12px;
+    }
+
+    .store-panels {
+        width: min(270px, calc(100vw - 56px));
+    }
+
+    .tower-shop-grid {
+        grid-template-columns: repeat(2, minmax(86px, 1fr));
+    }
 }

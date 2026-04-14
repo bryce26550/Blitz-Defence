@@ -56,7 +56,7 @@
             <!-- <div id="level">Level: <span id="levelValue">1</span></div>
             <div id="exp">EXP: <span id="expValue">0</span>/<span id="expMaxValue">100</span></div> -->
             <div id="health">Shield: <span id="healthValue">250</span>/<span id="healthMaxValue">250</span></div>
-            <div id="money">Digipogs: <span id="moneyValue">250</span></div>
+            <div id="money">Digipogs: <span id="moneyValue">99999</span></div>
 
             <!-- <div class="progress-container">
                 <div class="progress-bar">
@@ -66,19 +66,24 @@
             </div> -->
         </div>
 
-        <!-- Tower Shop  -->
-        <div id="towerShop" class="hidden">
-            <div class="tower-shop-header">
-                <span class="tower-shop-label">Tower Shop</span>
-                <span id="towerShopHint" class="tower-shop-hint">Select a tower to buy, then click the map to place it.</span>
-            </div>
-            <div id="towerShopCards" class="tower-shop-grid"></div>
-        </div>
+        <div id="storeDock" class="hidden closed">
+            <div id="storePanels" class="store-panels">
+                <!-- Tower Shop  -->
+                <div id="towerShop">
+                    <div class="tower-shop-header">
+                        <span class="tower-shop-label">Tower Shop</span>
+                        <span id="towerShopHint" class="tower-shop-hint">Select a tower to buy, then click the map to place it.</span>
+                    </div>
+                    <div id="towerShopCards" class="tower-shop-grid"></div>
+                </div>
 
-        <div id="towerUpgradePanel" class="hidden">
-            <div id="towerUpgradeTitle" class="tower-upgrade-title">No Tower Selected</div>
-            <div id="towerUpgradeBody" class="tower-upgrade-body">Click a placed tower to view upgrades.</div>
-            <button id="towerUpgradeBtn" class="tower-upgrade-btn" disabled>Upgrade</button>
+                <div id="towerUpgradePanel" class="inactive">
+                    <div id="towerUpgradeTitle" class="tower-upgrade-title">No Tower Selected</div>
+                    <div id="towerUpgradeBody" class="tower-upgrade-body">Click a placed tower to view upgrades.</div>
+                    <button id="towerUpgradeBtn" class="tower-upgrade-btn" disabled>Upgrade</button>
+                </div>
+            </div>
+            <button id="storeToggleBtn" class="store-toggle-btn" type="button" aria-expanded="false" aria-controls="towerShop towerUpgradePanel">Store</button>
         </div>
 
         <!-- Start Menu -->

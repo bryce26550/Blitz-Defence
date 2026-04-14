@@ -103,7 +103,7 @@ class Game {
         this.level = 1;
         this.sheild = 250;
         this.maxSheild = 250;
-        this.money = 250;
+        this.money = 99999;
         this.expToNextLevel = 100;
         this.showLevelUp = false;
 
@@ -196,6 +196,7 @@ class Game {
         this.selectedTower = null;       // Key from TOWER_TYPES currently selected in shop
         this.selectedPlacedTower = null; // Currently selected placed tower for upgrades
         this.towerShopRects = [];        // Clickable rects for the bottom shop panel
+        this.storeOpen = false;          // Right-side store dock visibility
 
         this.renderer = new GameRenderer(this);
 
@@ -456,6 +457,32 @@ class Game {
         this.updateTowerUpgradeUI();
     }
 
+    updateStoreDockUI() {
+        const dock = document.getElementById('storeDock');
+        const toggleBtn = document.getElementById('storeToggleBtn');
+        if (!dock || !toggleBtn) return;
+
+        const shouldShow = this.started && this.gameRunning;
+        dock.classList.toggle('hidden', !shouldShow);
+
+        if (!shouldShow) {
+            this.storeOpen = false;
+            dock.classList.remove('open');
+            dock.classList.add('closed');
+            toggleBtn.setAttribute('aria-expanded', 'false');
+            return;
+        }
+
+        dock.classList.toggle('open', this.storeOpen);
+        dock.classList.toggle('closed', !this.storeOpen);
+        toggleBtn.setAttribute('aria-expanded', this.storeOpen ? 'true' : 'false');
+    }
+
+    toggleStoreDock(forceOpen) {
+        this.storeOpen = typeof forceOpen === 'boolean' ? forceOpen : !this.storeOpen;
+        this.updateStoreDockUI();
+    }
+
     findTowerAtPoint(x, y) {
         for (let i = this.placedTowers.length - 1; i >= 0; i--) {
             const tower = this.placedTowers[i];
@@ -482,14 +509,14 @@ class Game {
         const button = document.getElementById('towerUpgradeBtn');
         if (!panel || !title || !body || !button) return;
 
+        this.updateStoreDockUI();
+
         if (!this.started || !this.gameRunning) {
-            panel.classList.add('hidden');
             return;
         }
 
-        panel.classList.remove('hidden');
-
         if (!this.selectedPlacedTower) {
+            panel.classList.add('inactive');
             title.textContent = 'No Tower Selected';
             body.innerHTML = 'Click a placed tower to view upgrades.';
             button.textContent = 'Upgrade';
@@ -497,6 +524,8 @@ class Game {
             button.dataset.upgradeId = '';
             return;
         }
+
+        panel.classList.remove('inactive');
 
         const tower = this.selectedPlacedTower;
         const nextUpgrades = tower.getAvailableUpgrades ? tower.getAvailableUpgrades() : [];
@@ -741,6 +770,13 @@ class Game {
             });
         }
 
+        const storeToggleBtn = document.getElementById('storeToggleBtn');
+        if (storeToggleBtn) {
+            storeToggleBtn.addEventListener('click', () => {
+                this.toggleStoreDock();
+            });
+        }
+
 
         // Player preview click
         const playerPreview = document.getElementById('playerPreview');
@@ -911,12 +947,11 @@ class Game {
 
         if (!shop || !cards) return;
 
+        this.updateStoreDockUI();
+
         if (!this.started || !this.gameRunning) {
-            shop.classList.add('hidden');
             return;
         }
-
-        shop.classList.remove('hidden');
 
         if (!cards.dataset.rendered) {
             this.buildTowerShopCards(cards);
@@ -1063,12 +1098,10 @@ class Game {
         this.placedTowers = [];
         this.selectedTower = null;
         this.selectedPlacedTower = null;
+        this.storeOpen = false;
 
-        // Hide the HTML tower shop when returning to menu
-        const _ts = document.getElementById('towerShop');
-        if (_ts) _ts.classList.add('hidden');
-        const _tu = document.getElementById('towerUpgradePanel');
-        if (_tu) _tu.classList.add('hidden');
+        // Hide the right-side store dock when returning to menu
+        this.updateStoreDockUI();
 
         // Reset payment
         // hasPaid = false;
@@ -1106,6 +1139,7 @@ class Game {
         // Start client game
         this.started = true;
         this.gameRunning = true;
+        this.storeOpen = false;
         this.hideAllMenus();
         this.restart(true);
     }
@@ -2204,9 +2238,10 @@ class Game {
         this.placedTowers = [];
         this.selectedTower = null;
         this.selectedPlacedTower = null;
+        this.storeOpen = false;
         this.exp = 0;
         this.level = 1;
-        this.money = 250;
+        this.money = 99999;
         this.expToNextLevel = 100;
         this.waveNumber = 1;
         this.waveRequirement = 300;
@@ -2247,25 +2282,10 @@ class Game {
 
         document.getElementById('gameOver').classList.add('hidden');
 
-        // Show / hide the HTML tower shop panel
-        const _towerShop = document.getElementById('towerShop');
-        if (_towerShop) {
-            if (startImmediately) {
-                _towerShop.classList.remove('hidden');
-                this.updateTowerShopUI();
-            } else {
-                _towerShop.classList.add('hidden');
-            }
-        }
-
-        const _towerUpgrade = document.getElementById('towerUpgradePanel');
-        if (_towerUpgrade) {
-            if (startImmediately) {
-                _towerUpgrade.classList.remove('hidden');
-                this.updateTowerUpgradeUI();
-            } else {
-                _towerUpgrade.classList.add('hidden');
-            }
+        this.updateStoreDockUI();
+        if (startImmediately) {
+            this.updateTowerShopUI();
+            this.updateTowerUpgradeUI();
         }
     }
 

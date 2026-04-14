@@ -1,7 +1,5 @@
 // Tower classes
 
-const { name } = require("ejs");
-
 const TOWER_TYPES = {
     shooter: {
         name: 'Shooter',
@@ -20,7 +18,7 @@ const TOWER_TYPES = {
         name: 'Blaster',
         cost: 250,
         damage: 2,
-        range: 25,
+        range: 50,
         fireRate: 1250,
         color: '#FF9800',
         projectileCount: 6,
@@ -28,7 +26,7 @@ const TOWER_TYPES = {
         spreadDegrees: 360,
         width: 34,
         height: 34,
-        image: '/img/burst.png'
+        image: '/img/megaman.png'
     },
     railgun: {
         name: 'Railgun',
@@ -188,6 +186,9 @@ const TOWER_UPGRADES = {
             image: '/img/scout.png',
             apply: (tower) => {
                 tower.projectileCount = Math.max(2, tower.projectileCount * 2);
+                if (!tower.spreadRadians || tower.spreadRadians <= 0) {
+                    tower.spreadRadians = Math.PI / 18;
+                }
             }
         },
         {
@@ -302,7 +303,7 @@ const TOWER_UPGRADES = {
             name: 'Fast Firing',
             description: 'Improved firing mechanism allowing for faster firing.',
             cost: 325,
-            image: '/img/burst.png',
+            image: '/img/megaman.png',
             apply: (tower) => {
                 scaleFireRate(tower, 0.85, 100);
             }
@@ -313,7 +314,7 @@ const TOWER_UPGRADES = {
             name: 'Strong Shells',
             description: 'Enhanced shells that deal more damage and hit more enemies.',
             cost: 650,
-            image: '/img/burst.png',
+            image: '/img/megaman.png',
             apply: (tower) => {
                 tower.damage += 1;
                 addPierce(tower, 1);
@@ -325,7 +326,7 @@ const TOWER_UPGRADES = {
             name: 'Sturdy Frame',
             description: 'A more robust frame that can handle increased stress. Increases damage and lifespan',
             cost: 1200,
-            image: '/img/burst.png',
+            image: '/img/megaman.png',
             apply: (tower) => {
                 tower.damage += 1;
                 tower.projectileLife = (tower.projectileLife || 1) + 1;
@@ -338,7 +339,7 @@ const TOWER_UPGRADES = {
             name: 'Double Barrel',
             description: 'Two barrels, doubling the number of projectiles.',
             cost: 2450,
-            image: '/img/burst.png',
+            image: '/img/megaman.png',
             apply: (tower) => {
                 tower.projectileCount *= 2;
             }
@@ -349,7 +350,7 @@ const TOWER_UPGRADES = {
             name: 'Overdrive',
             description: 'Time to take this puppy into overdrive. Increased damage and pierce, but slower fire rate.',
             cost: 5500,
-            image: '/img/burst.png',
+            image: '/img/megaman.png',
             apply: (tower) => {
                 tower.damage += 3;
                 addPierce(tower, 2);
@@ -703,6 +704,18 @@ const TOWER_UPGRADES = {
     ]
 };
 
+const TOWER_IMAGE_CACHE = {};
+
+function getTowerImage(src) {
+    if (!src) return null;
+    if (TOWER_IMAGE_CACHE[src]) return TOWER_IMAGE_CACHE[src];
+
+    const img = new Image();
+    img.src = src;
+    TOWER_IMAGE_CACHE[src] = img;
+    return img;
+}
+
 class Tower {
     constructor(x, y, type) {
         const def = TOWER_TYPES[type];
@@ -753,6 +766,7 @@ class Tower {
 
         this.level = 1;
         this.appliedUpgradeIds = [];
+        this.currentUpgradeImage = def.image || null;
 
         this.fireCooldown = 0;
         this.hackCooldown = this.hackInterval;
@@ -782,8 +796,29 @@ class Tower {
 
         upgrade.apply(this);
         this.appliedUpgradeIds.push(upgrade.id);
+        if (upgrade.image) {
+            this.currentUpgradeImage = upgrade.image;
+        }
         this.level += 1;
         return upgrade;
+    }
+
+    isMaxUpgradeLevel() {
+        return this.getAvailableUpgrades().length === 0;
+    }
+
+    getMaxLevelImagePath() {
+        if (this.currentUpgradeImage) return this.currentUpgradeImage;
+
+        const upgrades = TOWER_UPGRADES[this.type] || [];
+        if (!upgrades.length) return null;
+
+        const highestTierUpgrade = upgrades.reduce((best, current) => {
+            if (!best || current.tier > best.tier) return current;
+            return best;
+        }, null);
+
+        return (highestTierUpgrade && highestTierUpgrade.image) || null;
     }
 
     /**
@@ -889,12 +924,24 @@ class Tower {
             ctx.stroke();
         }
 
-        // Tower body
-        ctx.fillStyle = this.color;
-        ctx.fillRect(this.x, this.y, this.width, this.height);
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(this.x, this.y, this.width, this.height);
+        // Maxed towers use their upgrade icon on-canvas.
+        const shouldDrawIcon = this.isMaxUpgradeLevel();
+        const iconPath = shouldDrawIcon ? this.getMaxLevelImagePath() : null;
+        const iconImage = iconPath ? getTowerImage(iconPath) : null;
+        const canDrawIcon = !!(iconImage && iconImage.complete && iconImage.naturalWidth > 0);
+
+        if (canDrawIcon) {
+            ctx.drawImage(iconImage, this.x, this.y, this.width, this.height);
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(this.x, this.y, this.width, this.height);
+        } else {
+            ctx.fillStyle = this.color;
+            ctx.fillRect(this.x, this.y, this.width, this.height);
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(this.x, this.y, this.width, this.height);
+        }
 
         // Barrel pointing toward current target
         if (this.target) {
