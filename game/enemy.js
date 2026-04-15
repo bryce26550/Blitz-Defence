@@ -5,7 +5,7 @@ class Enemy {
         this.width = 30;
         this.height = 30;
         this.speed = 1.5;
-        this.hp = 3;
+        this.hp = 1;
         this.damage = 5;
         this.worth = 1;
     }
@@ -184,7 +184,7 @@ class Tank {
         this.width = 50;
         this.height = 40;
         this.speed = .75;
-        this.hp = 25;
+        this.hp = 5;
         this.maxHp = this.hp;
         this.damage = 25;
         this.worth = 15;

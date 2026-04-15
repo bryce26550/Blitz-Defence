@@ -224,11 +224,11 @@ class Game {
         document.getElementById('pauseMenu').classList.remove('hidden');
     }
 
-    showLevelUpMenu() {
-        this.hideAllMenus();
-        document.getElementById('levelUpMenu').classList.remove('hidden');
-        this.populateUpgradeOptions();
-    }
+    // showLevelUpMenu() {
+    //     this.hideAllMenus();
+    //     document.getElementById('levelUpMenu').classList.remove('hidden');
+    //     this.populateUpgradeOptions();
+    // }
 
     hideAllMenus() {
         const menuIds = ['startMenu', 'pauseMenu', 'levelUpMenu', 'gameOver', 'victoryMenu'];
@@ -1298,7 +1298,7 @@ class Game {
         // }
 
         this.checkWaveProgress();
-        this.checkLevelUp();
+        // this.checkLevelUp();
 
         // Update placed towers (acquire targets & fire)
         const allEnemies = [
@@ -1625,15 +1625,15 @@ class Game {
     }
 
 
-    checkLevelUp() {
-        if (this.exp >= this.expToNextLevel && !this.showLevelUp) {
-            this.showLevelUp = true;
-            this.gamePaused = true;
-            this.gamePausedReason = 'levelup';
-            this.generateUpgradeOptions();
-            this.showLevelUpMenu(); // Show HTML level up menu
-        }
-    }
+    // checkLevelUp() {
+    //     if (this.exp >= this.expToNextLevel && !this.showLevelUp) {
+    //         this.showLevelUp = true;
+    //         this.gamePaused = true;
+    //         this.gamePausedReason = 'levelup';
+    //         this.generateUpgradeOptions();
+    //         this.showLevelUpMenu(); // Show HTML level up menu
+    //     }
+    // }
 
     generateUpgradeOptions() {
         const allUpgrades = [
