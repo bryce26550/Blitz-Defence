@@ -102,14 +102,13 @@ class Game {
         this.tanks = [];
         this.sprinters = [];
         this.bosses = [];
-        this.availableBosses = [Blaster, Slasher, Sentinel, Railgun, Overlord]; // Add Blaster, Slasher, Sentinel, Railgun, Overlord for all bosses to be available
         this.particles = [];
 
         this.exp = 0;
         this.level = 1;
         this.sheild = 250;
         this.maxSheild = 250;
-        this.money = 99999;
+        this.money = 500;
         this.expToNextLevel = 100;
         this.showLevelUp = false;
 
@@ -122,14 +121,12 @@ class Game {
 
         // Music setup
         this.backgroundMusic = document.getElementById('backgroundMusic');
-        this.bossMusic = document.getElementById('bossMusic');
         this.currentMusic = null;
         this.musicFading = false;
         this.musicStarted = false;
 
         // Set volume levels
         if (this.backgroundMusic) this.backgroundMusic.volume = 0.05;
-        if (this.bossMusic) this.bossMusic.volume = 0.05;
 
         this.soundEffects = {
             enemyHit: document.getElementById('enemyHit'),
@@ -137,6 +134,7 @@ class Game {
             playerHit: document.getElementById('playerHit'),
             playerShot: document.getElementById('playerShot'),
             playerDefeat: document.getElementById('playerDefeat'),
+            bossDefeat: document.getElementById('bossDefeat'),
             slasherDash: document.getElementById('slasherDash'),
             railgunShot: document.getElementById('railgunShot')
         }
@@ -161,10 +159,10 @@ class Game {
         this.waveStartAllowed = false; // Flag to control wave start button availability
 
         // Load persisted settings
-        const _saved = (() => { try { return JSON.parse(localStorage.getItem('blitzDefenceSettings') || '{}'); } catch(e) { return {}; } })();
-        this.autoStart    = _saved.waveAuto  === true;  // default: manual
-        this.showTooltips = _saved.tooltips  !== false;  // default: on
-        this.soundEnabled = _saved.sound     !== false;  // default: on
+        const _saved = (() => { try { return JSON.parse(localStorage.getItem('blitzDefenceSettings') || '{}'); } catch (e) { return {}; } })();
+        this.autoStart = _saved.waveAuto === true;  // default: manual
+        this.showTooltips = _saved.tooltips !== false;  // default: on
+        this.soundEnabled = _saved.sound !== false;  // default: on
         this.applySoundSetting();
 
         // Multi-track spawning modes
@@ -329,7 +327,6 @@ class Game {
         const enabled = this.soundEnabled;
         const allAudio = [
             this.backgroundMusic,
-            this.bossMusic,
             ...Object.values(this.soundEffects)
         ];
         allAudio.forEach(el => { if (el) el.muted = !enabled; });
@@ -556,7 +553,7 @@ class Game {
             <div class="upgrade-description">${nextUpgrade.description}</div>
             <div class="upgrade-cost">Cost: $${nextUpgrade.cost}</div>
         </div>`;
-        
+
         body.innerHTML = bodyHTML;
         button.textContent = `Buy ${nextUpgrade.name} ($${nextUpgrade.cost})`;
         button.disabled = this.money < nextUpgrade.cost;
@@ -910,7 +907,7 @@ class Game {
                 ? `Select ${def.name} to buy for placement`
                 : 'Coming soon';
             card.addEventListener('click', () => this.selectTower(key));
-            
+
             const iconDiv = document.createElement('div');
             iconDiv.className = 'tower-card-icon';
             if (def.image) {
@@ -920,29 +917,29 @@ class Game {
             } else {
                 iconDiv.style.background = def.color || '#777';
             }
-            
+
             card.appendChild(iconDiv);
-            
+
             const nameDiv = document.createElement('div');
             nameDiv.className = 'tower-card-name';
             nameDiv.textContent = def.name;
             card.appendChild(nameDiv);
-            
+
             const statsDiv = document.createElement('div');
             statsDiv.className = 'tower-card-stats';
             statsDiv.textContent = this.formatTowerShopStats(def);
             card.appendChild(statsDiv);
-            
+
             const actionDiv = document.createElement('div');
             actionDiv.className = 'tower-card-action';
             actionDiv.textContent = isAvailable ? 'Buy tower' : 'Coming soon';
             card.appendChild(actionDiv);
-            
+
             const costDiv = document.createElement('div');
             costDiv.className = 'tower-card-cost';
             costDiv.textContent = `$${towerCost}`;
             card.appendChild(costDiv);
-            
+
             container.appendChild(card);
         });
     }
@@ -1193,20 +1190,6 @@ class Game {
         }
     }
 
-    getRandomBoss() {
-        const randomIndex = Math.floor(Math.random() * this.availableBosses.length);
-        const bossClass = this.availableBosses[randomIndex];
-
-        const boss = new bossClass(this.width / 2 - 30, 75);
-
-        // Give boss access to game dimensions
-        boss.gameWidth = this.width;
-        boss.gameHeight = this.height;
-
-        return boss;
-    }
-
-
     togglePause() {
         this.gamePaused = !this.gamePaused;
         this.gamePausedReason = this.gamePaused ? 'pause' : '';
@@ -1309,10 +1292,10 @@ class Game {
         // Check collisions
         this.checkCollisions();
 
-        // Player shooting
-        if (this.keys['Space']) {
-            this.player.shoot(this.bullets, this.mouseX, this.mouseY);
-        }
+        // // Player shooting
+        // if (this.keys['Space']) {
+        //     this.player.shoot(this.bullets, this.mouseX, this.mouseY);
+        // }
 
         this.checkWaveProgress();
         this.checkLevelUp();
@@ -1453,11 +1436,6 @@ class Game {
         }
     }
 
-    isBossWave() {
-        return (this.waveNumber - 5) % 10 === 0 && this.waveNumber >= 5;
-    }
-
-
     setMultiTrackMode(mode) {
         this.multiTrackMode = mode; // 'perEnemy', 'perWave', or 'single'
         console.log('Multi-track mode set to:', mode);
@@ -1558,6 +1536,8 @@ class Game {
         } else if (EnemyClass === Tank) {
             this.tanks.push(enemy);
         } else if (EnemyClass === Sprinter) {
+            this.sprinters.push(enemy);
+        } else if (EnemyClass === Boss) {
             this.sprinters.push(enemy);
         }
 
@@ -1934,23 +1914,12 @@ class Game {
             return sprinter.hp > 0;
         });
 
-        // Update bosses
-        this.bosses = this.bosses.filter(boss => {
+        // Update enemies
+        this.bosses = this.enemies.filter(boss => {
             if ((boss.stunTimer || 0) > 0) {
                 boss.stunTimer -= deltaTime;
             } else {
-                if (boss.constructor.name === 'Railgun') {
-                    // Railgun needs lineshots as second parameter
-                    boss.update(deltaTime, this.lineshots, this.player);
-                } else {
-                    // Other bosses use the standard format
-                    boss.update(deltaTime, this.bullets, this.player, {
-                        enemies: this.enemies,
-                        shooters: this.shooters,
-                        tanks: this.tanks,
-                        sprinters: this.sprinters,
-                    });
-                }
+                boss.update(deltaTime);
             }
             return boss.hp > 0;
         });
@@ -2123,119 +2092,37 @@ class Game {
                 }
             }
 
-            // Check vs bosses
-            for (let j = this.bosses.length - 1; j >= 0 && hitCount < bullet.pierce; j--) {
+            // Check vs Boss
+            for (let j = this.bosses.length - 1; j >= 0; j--) {
                 if (this.checkCollision(bullet, this.bosses[j])) {
-                    const damage = getTowerAdjustedDamage(bullet, this.bosses[j]);
-                    this.bosses[j].takeDamage(damage);
-                    applyTowerHitEffects(bullet, this.bosses[j]);
+                    const boss = this.bosses[j];
+                    const damage = getTowerAdjustedDamage(bullet, boss);
+
+                    // Damage the boss first
+                    boss.takeDamage ? boss.takeDamage(damage) : (boss.hp -= damage);
+                    applyTowerHitEffects(bullet, boss);
                     this.createExplosion(bullet.x, bullet.y);
                     this.playSound('enemyHit');
 
-                    if (this.bosses[j].hp <= 0) {
-                        this.createExplosion(this.bosses[j].x, this.bosses[j].y);
-                        this.bosses.splice(j, 1);
-                        this.clearMinions();
-                        this.playSound('bossDefeat')
+                    if (boss.hp <= 0) {
+                        this.createExplosion(boss.x, boss.y);
+                        this.money += boss.worth;
+                        this.enemies.splice(j, 1);
 
-                        // Switch back to background music here!
-                        this.switchToBackgroundMusic();
-
-                        this.addExp(500);
+                        this.addExp(5);
                         if (this.player.lifeSteal && this.player.health < this.player.maxHealth) {
-                            this.player.health += 5;
+                            this.player.health++;
                         }
                     }
                     hit = true;
                     hitCount++;
+                    if (hitCount >= bullet.pierce) break;
                 }
             }
 
 
             if (hit && hitCount >= bullet.pierce) {
                 this.bullets.splice(i, 1);
-            }
-
-            // Check vs walls
-            for (let bossIndex = 0; bossIndex < this.bosses.length; bossIndex++) {
-                const boss = this.bosses[bossIndex];
-                if (boss.walls && hitCount < bullet.pierce) {
-                    for (let j = boss.walls.length - 1; j >= 0; j--) {
-                        if (this.checkCollision(bullet, boss.walls[j])) {
-                            const wall = boss.walls[j];
-
-                            console.log(`Wall hit! HP before: ${wall.hp}, Bullet damage: ${bullet.damage}`);
-                            wall.takeDamage(bullet.damage);
-                            this.createExplosion(bullet.x, bullet.y);
-                            this.playSound('enemyHit');
-
-                            if (wall.hp <= 0) {
-                                console.log('Wall destroyed!');
-                                this.createExplosion(wall.x, wall.y);
-                                boss.walls.splice(j, 1);
-                            }
-
-                            // Remove bullet immediately
-                            this.bullets.splice(i, 1);
-                            hit = true;
-                            return; // Exit the entire collision function
-                        }
-                    }
-                }
-            }
-
-
-        };
-
-        // Player vs walls - solid collision (no damage)
-        for (let bossIndex = 0; bossIndex < this.bosses.length; bossIndex++) {
-            const boss = this.bosses[bossIndex];
-            if (boss.walls) {
-                for (let j = 0; j < boss.walls.length; j++) {
-                    const wall = boss.walls[j];
-
-                    if (this.checkCollision(this.player, wall)) {
-                        // Calculate overlap and push player out
-                        const overlapLeft = (this.player.x + this.player.width) - wall.x;
-                        const overlapRight = (wall.x + wall.width) - this.player.x;
-                        const overlapTop = (this.player.y + this.player.height) - wall.y;
-                        const overlapBottom = (wall.y + wall.height) - this.player.y;
-
-                        // Find the smallest overlap (shortest way to push out)
-                        const minOverlap = Math.min(overlapLeft, overlapRight, overlapTop, overlapBottom);
-
-                        if (minOverlap === overlapLeft) {
-                            this.player.x = wall.x - this.player.width;
-                        } else if (minOverlap === overlapRight) {
-                            this.player.x = wall.x + wall.width;
-                        } else if (minOverlap === overlapTop) {
-                            this.player.y = wall.y - this.player.height;
-                        } else {
-                            this.player.y = wall.y + wall.height;
-                        }
-
-                        // Keep player in bounds
-                        this.player.x = Math.max(0, Math.min(this.width - this.player.width, this.player.x));
-                        this.player.y = Math.max(0, Math.min(this.height - this.player.height, this.player.y));
-                    }
-                }
-            }
-        };
-
-        // LineShot vs player collision
-        for (let i = this.lineshots.length - 1; i >= 0; i--) {
-            const lineShot = this.lineshots[i];
-            if (!lineShot || lineShot.isPreview || lineShot.damage === 0) continue;
-
-            // Check if player intersects with the line
-            if (this.checkLineCollision(this.player, lineShot)) {
-                this.createExplosion(this.player.x, this.player.y);
-                this.playSound('playerHit');
-                lineShot.isActive = false; // Remove the lineshot after hit
-
-                if (this.player.health <= 0) {
-                    this.gameOver();
-                }
             }
         };
     }
@@ -2309,7 +2196,7 @@ class Game {
 
     async victory() {
         this.gameRunning = false;
-        // this.playSound('bossDefeat')
+        this.playSound('bossDefeat')
         document.getElementById('victoryMenu').classList.remove('hidden');
     }
 
@@ -2337,7 +2224,7 @@ class Game {
         this.storeOpen = false;
         this.exp = 0;
         this.level = 1;
-        this.money = 99999;
+        this.money = 500;
         this.expToNextLevel = 100;
         this.waveNumber = 1;
         this.waveRequirement = 300;
@@ -2353,10 +2240,10 @@ class Game {
         this.waveComplete = false;
         this.waveStartAllowed = false;
         // Re-read persisted settings
-        const _s = (() => { try { return JSON.parse(localStorage.getItem('blitzDefenceSettings') || '{}'); } catch(e) { return {}; } })();
-        this.autoStart    = _s.waveAuto  === true;
-        this.showTooltips = _s.tooltips  !== false;
-        this.soundEnabled = _s.sound     !== false;
+        const _s = (() => { try { return JSON.parse(localStorage.getItem('blitzDefenceSettings') || '{}'); } catch (e) { return {}; } })();
+        this.autoStart = _s.waveAuto === true;
+        this.showTooltips = _s.tooltips !== false;
+        this.soundEnabled = _s.sound !== false;
         this.applySoundSetting();
         this.spawnTimer = 0;
         this.totalEnemiesInWave = 0;

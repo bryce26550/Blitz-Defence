@@ -4,8 +4,8 @@ class Enemy {
         this.y = y;
         this.width = 30;
         this.height = 30;
-        this.speed = 1;
-        this.hp = 1;
+        this.speed = 1.5;
+        this.hp = 3;
         this.damage = 5;
         this.worth = 1;
     }
@@ -183,11 +183,11 @@ class Tank {
         this.y = y;
         this.width = 50;
         this.height = 40;
-        this.speed = 0.3;
-        this.hp = 5;
+        this.speed = .75;
+        this.hp = 25;
         this.maxHp = this.hp;
         this.damage = 25;
-        this.worth = 5;
+        this.worth = 15;
     }
 
     update(deltaTime) {
@@ -271,12 +271,6 @@ class Tank {
 
         ctx.fillStyle = '#444444';
         ctx.fillRect(this.x + 22, this.y + 30, 6, 15);
-
-        // Health bar
-        ctx.fillStyle = 'red';
-        ctx.fillRect(this.x, this.y - 8, this.width, 4);
-        ctx.fillStyle = 'green';
-        ctx.fillRect(this.x, this.y - 8, (this.hp / this.maxHp) * this.width, 4);
     }
 }
 
@@ -290,7 +284,7 @@ class Sprinter {
         this.hp = 1;
         this.maxHp = this.hp;
         this.damage = 15;
-        this.worth = 3;
+        this.worth = 5;
 
     }
 
@@ -388,5 +382,95 @@ class Sprinter {
         ctx.fillRect(this.x + 5, this.y + 5, 15, 15);
         ctx.fillStyle = '#000000';
         ctx.fillRect(this.x + 10, this.y + 8, 5, 5);
+    }
+}
+
+class Boss {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.width = 50;
+        this.height = 50;
+        this.speed = .5;
+        this.hp = 100;
+        this.damage = 50;
+        this.worth = 500;
+    }
+
+    update(deltaTime) {
+        this.followPath(deltaTime);
+    }
+
+    // Add to each enemy class
+    setPath(waypoints) {
+        this.path = waypoints;
+        this.currentWaypoint = 1; // Start heading to waypoint 1 (0 is spawn)
+        this.pathProgress = 0;
+    }
+
+    // Update their movement logic to follow path instead of straight down
+    followPath(deltaTime) {
+        if (!this.path || this.currentWaypoint >= this.path.length) {
+            // No path or reached end, move toward base
+            const baseCenterX = 650;
+            const baseCenterY = 400;
+            const enemyCenterX = this.x + this.width / 2;
+            const enemyCenterY = this.y + this.height / 2;
+
+            const dx = baseCenterX - enemyCenterX;
+            const dy = baseCenterY - enemyCenterY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            // Check if enemy reached the base (within 30 pixels of center)
+            if (distance <= 30) {
+                // Deal damage to base and mark enemy for removal
+                if (window.game) {
+                    window.game.takeDamage(this.damage);
+                    window.game.createExplosion(this.x + this.width / 2, this.y + this.height / 2);
+                }
+                this.hp = 0; // Mark for removal
+                return;
+            }
+
+            if (distance > 0) {
+                this.x += (dx / distance) * this.speed * deltaTime / 16;
+                this.y += (dy / distance) * this.speed * deltaTime / 16;
+            }
+            return;
+        }
+
+        // Move toward current waypoint (keep enemy center on path)
+        const target = this.path[this.currentWaypoint];
+        const enemyCenterX = this.x + this.width / 2;
+        const enemyCenterY = this.y + this.height / 2;
+
+        const dx = target.x - enemyCenterX;
+        const dy = target.y - enemyCenterY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance < 10) {
+            // Reached waypoint, move to next
+            this.currentWaypoint++;
+        } else {
+            // Move toward waypoint (this moves the enemy's top-left corner)
+            this.x += (dx / distance) * this.speed * deltaTime / 16;
+            this.y += (dy / distance) * this.speed * deltaTime / 16;
+        }
+    }
+
+
+    takeDamage(damage = 1) {
+        this.hp -= damage;
+    }
+
+
+    render(ctx) {
+        ctx.fillStyle = '#2b2b2bff';
+        ctx.fillRect(this.x, this.y, this.width, this.height);
+
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(this.x + 5, this.y + 5, 40, 40);
+        ctx.fillStyle = '#1d1d1dff';
+        ctx.fillRect(this.x + 10, this.y + 10, 30, 30);
     }
 }

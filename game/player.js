@@ -126,6 +126,8 @@ class Player {
 
     // Draw the body shape (colored outer shell)
     drawBodyShape(ctx) {
+        // Player body rendering commented out.
+        /*
         ctx.fillStyle = this.color;
         const centerX = this.x + this.width / 2;
         const centerY = this.y + this.height / 2;
@@ -175,10 +177,13 @@ class Player {
                 ctx.fillRect(this.x + 2, centerY - crossSize / 2, this.width - 4, crossSize);
                 break;
         }
+        */
     }
 
     // Draw the inner shape (white inner design)
     drawInnerShape(ctx, centerX, centerY, size) {
+        // Player inner-shape rendering commented out.
+        /*
         ctx.fillStyle = '#ffffff';
 
         switch (this.innerShapeIndex) { // Changed from this.innerShapeIndex to this.innerShapeIndex
@@ -225,10 +230,13 @@ class Player {
                 ctx.fillRect(centerX - size / 2, centerY - crossSize / 2, size, crossSize);
                 break;
         }
+        */
     }
 
     // Helper methods for complex shapes
     drawStar(ctx, cx, cy, spikes, outerRadius, innerRadius) {
+        // Star drawing commented out.
+        /*
         let rot = Math.PI / 2 * 3;
         let x = cx;
         let y = cy;
@@ -252,9 +260,12 @@ class Player {
         ctx.lineTo(cx, cy - outerRadius);
         ctx.closePath();
         ctx.fill();
+        */
     }
 
     drawPolygon(ctx, cx, cy, sides, radius) {
+        // Polygon drawing commented out.
+        /*
         const angle = 2 * Math.PI / sides;
         ctx.beginPath();
         ctx.moveTo(cx + radius * Math.cos(0), cy + radius * Math.sin(0));
@@ -265,9 +276,12 @@ class Player {
 
         ctx.closePath();
         ctx.fill();
+        */
     }
 
     render(ctx) {
+        // Player render commented out.
+        /*
         // Draw body shape (colored outer part)
         this.drawBodyShape(ctx);
 
@@ -275,6 +289,7 @@ class Player {
         const centerX = this.x + this.width / 2;
         const centerY = this.y + this.height / 2;
         this.drawInnerShape(ctx, centerX, centerY, 18);
+        */
     }
 }
 
