@@ -775,22 +775,25 @@ label.checkbox {
 
 /* ── Sliding Store Dock ──*/
 #storeDock {
+    --store-toggle-width: 48px;
+    --store-panels-width: min(330px, calc(100vw - 76px));
     position: fixed;
     top: 50%;
-    left: 14px;
+    left: 0;
     z-index: 30;
     display: flex;
     align-items: flex-start;
-    transform: translateX(calc(-100% + 48px)) translateY(-50%);
+    transform: translate3d(calc(-1 * var(--store-panels-width)), -50%, 0);
     transition: transform 0.28s ease;
+    will-change: transform;
 }
 
 #storeDock.open {
-    transform: translateX(0) translateY(-50%);
+    transform: translate3d(0, -50%, 0);
 }
 
 .store-toggle-btn {
-    width: 48px;
+    width: var(--store-toggle-width);
     min-height: 130px;
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-right: none;
@@ -812,7 +815,7 @@ label.checkbox {
 }
 
 .store-panels {
-    width: min(300px, calc(100vw - 86px));
+    width: var(--store-panels-width);
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -822,6 +825,9 @@ label.checkbox {
     display: flex;
     flex-direction: column;
     gap: 10px;
+    max-height: min(48vh, calc(100vh - 220px));
+    overflow-y: auto;
+    overflow-x: hidden;
     background: linear-gradient(180deg, rgba(10, 10, 10, 0.88), rgba(25, 25, 25, 0.94));
     padding: 12px 14px 14px;
     border-radius: 12px 0 0 0;
@@ -857,13 +863,15 @@ label.checkbox {
 
 .tower-shop-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(98px, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
+    padding-right: 2px;
 }
 
 .tower-card {
     width: 100%;
-    min-height: 116px;
+    box-sizing: border-box;
+    min-height: 108px;
     background: rgba(30, 30, 30, 0.92);
     border: 1px solid rgba(255, 255, 255, 0.16);
     border-radius: 10px;
@@ -922,8 +930,8 @@ label.checkbox {
 }
 
 .tower-card-icon {
-    width: 28px;
-    height: 28px;
+    width: 26px;
+    height: 26px;
     border-radius: 5px;
     border: 2px solid rgba(255, 255, 255, 0.24);
 }
@@ -998,6 +1006,7 @@ label.checkbox {
     height: 100px;
     object-fit: cover;
     border-radius: 4px;
+    box-sizing: border-box;
     margin-bottom: 4px;
 }
 
@@ -1027,8 +1036,6 @@ label.checkbox {
 }
 
 .tower-upgrade-btn {
-    width: 100%;
-    margin-top: 8px;
     background: #2f8f43;
     color: #ffffff;
     border: 1px solid #4caf50;
@@ -1049,6 +1056,34 @@ label.checkbox {
     cursor: not-allowed;
 }
 
+.tower-upgrade-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.tower-sell-btn {
+    background: #8a3a3a;
+    color: #ffffff;
+    border: 1px solid #b25252;
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.tower-sell-btn:hover:not(:disabled) {
+    background: #9b4343;
+}
+
+.tower-sell-btn:disabled {
+    background: #3a3a3a;
+    border-color: #666666;
+    color: #a0a0a0;
+    cursor: not-allowed;
+}
+
 .settings-buttons {
     display: flex;
     justify-content: center;
@@ -1058,25 +1093,20 @@ label.checkbox {
 
 @media (max-width: 900px) {
     #storeDock {
-        left: 8px;
-        transform: translateX(calc(-100% + 42px)) translateY(-50%);
+        --store-toggle-width: 42px;
+        --store-panels-width: min(250px, calc(100vw - 52px));
     }
 
-    #storeDock.open {
-        transform: translateX(0) translateY(-50%);
+    #towerShop {
+        max-height: min(65vh, calc(100vh - 140px));
     }
 
     .store-toggle-btn {
-        width: 42px;
         min-height: 110px;
         font-size: 12px;
     }
 
-    .store-panels {
-        width: min(270px, calc(100vw - 56px));
-    }
-
     .tower-shop-grid {
-        grid-template-columns: repeat(2, minmax(86px, 1fr));
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }

@@ -108,7 +108,7 @@ class Game {
         this.level = 1;
         this.sheild = 250;
         this.maxSheild = 250;
-        this.money = 500;
+        this.money = 99999;
         this.expToNextLevel = 100;
         this.showLevelUp = false;
 
@@ -136,7 +136,10 @@ class Game {
             playerDefeat: document.getElementById('playerDefeat'),
             bossDefeat: document.getElementById('bossDefeat'),
             slasherDash: document.getElementById('slasherDash'),
-            railgunShot: document.getElementById('railgunShot')
+            railgunShot: document.getElementById('railgunShot'),
+            levelUp: document.getElementById('levelUp'),
+            megaman: document.getElementById('megaman'),
+            plankton: document.getElementById('plankton')
         }
 
         Object.values(this.soundEffects).forEach(sound => {
@@ -509,8 +512,9 @@ class Game {
         const panel = document.getElementById('towerUpgradePanel');
         const title = document.getElementById('towerUpgradeTitle');
         const body = document.getElementById('towerUpgradeBody');
-        const button = document.getElementById('towerUpgradeBtn');
-        if (!panel || !title || !body || !button) return;
+        const upgradeButton = document.getElementById('towerUpgradeBtn');
+        const sellButton = document.getElementById('towerSellBtn');
+        if (!panel || !title || !body || !upgradeButton || !sellButton) return;
 
         this.updateStoreDockUI();
 
@@ -522,9 +526,11 @@ class Game {
             panel.classList.add('inactive');
             title.textContent = 'No Tower Selected';
             body.innerHTML = 'Click a placed tower to view upgrades.';
-            button.textContent = 'Upgrade';
-            button.disabled = true;
-            button.dataset.upgradeId = '';
+            upgradeButton.textContent = 'Upgrade';
+            upgradeButton.disabled = true;
+            upgradeButton.dataset.upgradeId = '';
+            sellButton.textContent = 'Sell';
+            sellButton.disabled = true;
             return;
         }
 
@@ -533,14 +539,17 @@ class Game {
         const tower = this.selectedPlacedTower;
         const nextUpgrades = tower.getAvailableUpgrades ? tower.getAvailableUpgrades() : [];
         const nextUpgrade = nextUpgrades[0];
+        const sellValue = tower.getSellValue ? tower.getSellValue() : Math.floor((tower.cost || 0) * 0.63);
 
         title.textContent = `${tower.name} (Lv ${tower.level || 1})`;
+        sellButton.textContent = `Sell ($${sellValue})`;
+        sellButton.disabled = false;
 
         if (!nextUpgrade) {
             body.innerHTML = 'No upgrades available yet for this tower.';
-            button.textContent = 'Maxed';
-            button.disabled = true;
-            button.dataset.upgradeId = '';
+            upgradeButton.textContent = 'Maxed';
+            upgradeButton.disabled = true;
+            upgradeButton.dataset.upgradeId = '';
             return;
         }
 
@@ -555,9 +564,9 @@ class Game {
         </div>`;
 
         body.innerHTML = bodyHTML;
-        button.textContent = `Buy ${nextUpgrade.name} ($${nextUpgrade.cost})`;
-        button.disabled = this.money < nextUpgrade.cost;
-        button.dataset.upgradeId = nextUpgrade.id;
+        upgradeButton.textContent = `Buy ${nextUpgrade.name} ($${nextUpgrade.cost})`;
+        upgradeButton.disabled = this.money < nextUpgrade.cost;
+        upgradeButton.dataset.upgradeId = nextUpgrade.id;
     }
 
     buySelectedTowerUpgrade() {
@@ -572,8 +581,28 @@ class Game {
         if (!applied) return;
 
         this.money -= applied.cost;
+        if (tower.type === 'blaster' && applied.id === 'plankton') {
+            this.playSound('plankton');
+        } else {
+            this.playSound('levelUp');
+        }
         this.updateGameUI();
         console.log(`Upgraded ${tower.name} with ${applied.name}. Money left: ${this.money}`);
+    }
+
+    sellSelectedTower() {
+        const tower = this.selectedPlacedTower;
+        if (!tower) return;
+
+        const index = this.placedTowers.indexOf(tower);
+        if (index === -1) return;
+
+        const sellValue = tower.getSellValue ? tower.getSellValue() : Math.floor((tower.cost || 0) * 0.63);
+        this.money += sellValue;
+        this.placedTowers.splice(index, 1);
+        this.setSelectedPlacedTower(null);
+        this.updateGameUI();
+        console.log(`Sold ${tower.name} for $${sellValue}. Money now: ${this.money}`);
     }
 
 
@@ -630,6 +659,12 @@ class Game {
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
             this.handleCanvasClick(x, y, e);
+        });
+
+        this.canvas.addEventListener('contextmenu', (e) => {
+            if (this.selectedTower) {
+                e.preventDefault();
+            }
         });
 
         const restartBtn = document.getElementById('restartBtn');
@@ -773,6 +808,13 @@ class Game {
             });
         }
 
+        const towerSellBtn = document.getElementById('towerSellBtn');
+        if (towerSellBtn) {
+            towerSellBtn.addEventListener('click', () => {
+                this.sellSelectedTower();
+            });
+        }
+
         const storeToggleBtn = document.getElementById('storeToggleBtn');
         if (storeToggleBtn) {
             storeToggleBtn.addEventListener('click', () => {
@@ -793,6 +835,16 @@ class Game {
     }
 
     handleCanvasClick(x, y, e) {
+        // Right-click cancels the currently selected shop tower for placement.
+        if (e.button === 2) {
+            if (this.selectedTower) {
+                e.preventDefault();
+                this.selectedTower = null;
+                this.updateTowerShopUI();
+            }
+            return;
+        }
+
         // Make it so towers can't be placed near the wave start button
         if (this.pointInRect(x, y, this.uiRects.waveStart)) {
             console.log("Wave start button clicked!");
@@ -841,6 +893,7 @@ class Game {
             this.placedTowers.push(placedTower);
             this.setSelectedPlacedTower(placedTower);
             this.money -= def.cost;
+            this.selectedTower = null;
             this.updateGameUI();
             console.log(`Placed ${def.name} at (${Math.round(x)}, ${Math.round(y)}). Money left: ${this.money}`);
             return;
@@ -1313,7 +1366,12 @@ class Game {
 
         this.placedTowers.forEach(tower => {
             tower.update(deltaTime, allEnemies);
-            tower.shoot(this.bullets);
+            const fired = tower.shoot(this.bullets);
+            const hasOverdrive = tower.appliedUpgradeIds && tower.appliedUpgradeIds.includes('overdrive');
+            const hasMaximumOverdrive = tower.appliedUpgradeIds && tower.appliedUpgradeIds.includes('plankton');
+            if (fired && tower.type === 'blaster' && hasOverdrive && !hasMaximumOverdrive) {
+                this.playSound('megaman');
+            }
         });
     }
 
@@ -2224,7 +2282,7 @@ class Game {
         this.storeOpen = false;
         this.exp = 0;
         this.level = 1;
-        this.money = 500;
+        this.money = 99999;
         this.expToNextLevel = 100;
         this.waveNumber = 1;
         this.waveRequirement = 300;
