@@ -35,13 +35,13 @@ The current design focuses on a clean start menu, centered “How to Play” pan
 
 ## Setup
 
-Create a `.env` file in the project root:
+Create a `.env` file in the project root(All Nessicary information contained within the .env_template file):
 
 ```env
 PORT=3000
 SESSION_SECRET=your_session_secret_key
-AUTH_URL=http://localhost:420/oauth
-THIS_URL=http://localhost:3000
+AUTH_URL= The URL you intend to use for Oauth
+THIS_URL= The URL you intend to run the game on
 API_KEY=your_formbar_api_key
 ```
 
