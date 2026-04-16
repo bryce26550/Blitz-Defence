@@ -40,8 +40,8 @@ Create a `.env` file in the project root(All Nessicary information contained wit
 ```env
 PORT=3000
 SESSION_SECRET=your_session_secret_key
-AUTH_URL= The URL you intend to use for Oauth
-THIS_URL= The URL you intend to run the game on
+AUTH_URL= The URL you intend to use for Oauth. DO NOT ADD a /oauth endpoint as it is already defined in the code
+THIS_URL= The URL you intend to run the game on. DO ADD a /login endoping as it is not defined in the code
 API_KEY=your_formbar_api_key
 ```
 
