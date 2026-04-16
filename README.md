@@ -1,182 +1,108 @@
-# Pixel-Blitz
+# Blitz Defence
 
-A browser-based bullet-hell space shooter with integrated payment system, built with Node.js, Express, and the Canvas API.
+A browser-based wave defense game built with Node.js, Express, EJS, Socket.IO, SQLite, and the Canvas API.
 
-This is a wave-based space shooter game that integrates with the Formbar classroom management system for user authentication and digital currency payments. Players fight through increasingly difficult waves of enemies and challenging boss encounters while earning rewards.
+The current design focuses on a clean start menu, centered “How to Play” panel, payment gate, settings modal, and in-game wave defense. The player/hero customization UI has been removed from the visible layout and the README now reflects that streamlined experience.
 
 ## Features
 
-Game Features
-- Wave-based Combat: Progress through increasingly difficult waves with varied enemy types
-- Boss Battles: Unique bosses every 5th wave with distinct attack patterns and mechanics
-- Player Progression: Level up system with randomized upgrade choices
-- Enemy Variety:
-  - Basic Enemies: Standard red attackers
-  - Shooters: Blue enemies that fire at the player
-  - Tanks: Heavy armored enemies with spread shots
-  - Sprinters: Fast pink enemies with dash attacks
-- Boss Types:
-  - Blaster: Multi-phase shooting boss
-  - Slasher: Fast-moving dash-and-lock boss
-  - Sentinel: Defensive boss that spawns protective walls
-  - Railgun: Precision line-shot boss with tracking
-  - Overlord: Summoner boss that spawns minions
-- Player Customization: Multiple ship colors and shapes
-- Upgrade System: Random upgrade choices (damage, fire rate, multi-shot, pierce, ricochet, homing, health, speed, life steal)
+### Gameplay
+- Wave-based combat against increasingly difficult enemies
+- Boss encounters on later waves
+- Tower placement and upgrades for defense planning
+- Currency gain from enemy defeats and wave progress
+- Shield-based survival system
 
-Technical Features
-- Formbar Integration: OAuth authentication through the Formbar classroom system
-- Digital Currency: Pay-to-play system using Digipogs (classroom currency)
-- Server-Side Validation: Anti-cheat measures and game session management
-- Real-time Updates: Socket.io integration for live price and state updates
-- Session Management: SQLite-based session storage with automatic cleanup
-- Admin Panel: Price management and game settings control
+### Enemies
+- Basic enemies
+- Tanks
+- Sprinters
+- Boss
 
-## Prerequisites
-- Node.js (LTS recommended, Node 16+)
-- npm (comes with Node)
-- Access to Formbar authentication server
-- Valid API key for Formbar integration
+### UI and systems
+- Centered start menu instructions with a map selector button
+- Payment overlay for game entry
+- Settings modal for wave start mode, tooltips, and sound
+- Admin panel for game price control
+- SQLite-backed session and settings storage
+- Formbar authentication integration
 
-## Environment Setup
+## Requirements
+- Node.js 16 or newer
+- npm
+- Access to the Formbar authentication server
+- Valid API key for the Formbar integration
 
-Create a .env file in the project root with these variables:
+## Setup
+
+Create a `.env` file in the project root:
 
 ```env
-PORT=3500
+PORT=3000
 SESSION_SECRET=your_session_secret_key
 AUTH_URL=http://localhost:420/oauth
-THIS_URL=http://localhost:3500
+THIS_URL=http://localhost:3000
 API_KEY=your_formbar_api_key
 ```
 
-## Quick Start
-
-1. Clone the repository and change into the project directory.
-2. Install dependencies:
+Install dependencies:
 
 ```bash
 npm install
 ```
 
-3. Initialize the database:
+Initialize the database:
 
 ```bash
 node scripts/init-db.js
 ```
 
-4. Start the server:
+Start the app:
 
 ```bash
 npm start
-# or for development with auto-reload:
+```
+
+For development:
+
+```bash
 npm run dev
 ```
 
-5. Open your browser to http://localhost:3500 (or your configured port).
+Then open the app in your browser on the configured port.
 
-## How to Play
+## How to play
 
-Controls
-- Movement: WASD or Arrow Keys
-- Aim: Mouse cursor
-- Shoot: Spacebar or Left-Click
-- Pause: ESC key
+- Choose your map then press the Start Game button
+- Start waves using the green button in the bottom right or auto-start setting
+- Press ESC to pause
+- Place towers on valid ground, not on the track
+- Survive until all waves are complete
 
-Game Mechanics
-- Health System: Start with 10 health points and 5 lives
-- Wave Progression: Complete waves by earning enough wave progress points
-- Boss Waves: Every 5th wave features a unique boss battle
-- Experience & Leveling: Gain XP by defeating enemies, level up to choose upgrades
-- Payment System: Pay the entry fee in Digipogs to start each game session
-- Rewards: Earn Digipogs back by completing waves (every 5th wave gives payout)
+## Current design notes
 
-Enemy Types (example scoring)
-- Red Enemies (10 pts): Basic attackers that move downward
-- Blue Shooters (25 pts): Fire tracking projectiles
-- Gray Tanks (50 pts): Heavy enemies with spread-shot attacks
-- Pink Sprinters (75 pts): Fast dash enemies
-- Bosses (200 pts): High HP, unique mechanics
+- The start menu now emphasizes a centered instructions layout
+- The visible hero customization controls are commented out in the UI
+- Player rendering and customization UI hooks are still present in code, but disabled from the active flow
+- Settings are saved locally in the browser
+- Payment is required before starting a new game session
 
-## Project Structure
+## Project structure
 
-- app.js — Main Express server with game session management
-- package.json — Dependencies and scripts
-- public/ — Static assets served to client
-  - main.js — Client-side game engine and UI wiring
-  - game.js — Game renderer and core loop
-  - player.js — Player class and bullet mechanics
-  - enemy.js — Enemy classes (Enemy, Shooter, Tank, Sprinter)
-  - boss.js — Boss classes (Blaster, Slasher, Sentinel, etc.)
-  - style.css — Game styling
-- views/
-  - index.ejs — Main game interface
-  - pay.ejs — Payment interface
-  - admin.ejs — Admin panel for price management
-- db/
-  - database.db — Game settings and user data
-  - sessions.db — Session storage
-- scripts/
-  - init-db.js — Database initialization
+- `app.js` — Express server, routes, auth, payment, sessions
+- `game/` — Client-side game logic, rendering, enemies, towers, and wave handling
+- `views/` — EJS templates for the game, login, and admin pages
+- `db/` — SQLite database files and initialization SQL
+- `scripts/` — Utility scripts such as database initialization
+- `img/`, `music/`, `sfx/` — Game assets
 
-## Game Systems
+## Scripts
 
-Payment & Sessions
-- Players must pay an entry fee (configurable) in Digipogs to start playing
-- Server-side session management prevents cheating and validates game progress
-- Automatic payout system rewards players for wave completion
+- `npm start` — Start the server
+- `npm run dev` — Start the server with nodemon
 
-Anti-Cheat & Validation
-- Server validates wave progression, timing, and score gains
-- Rate limiting prevents request flooding
-- Session cleanup removes inactive games
+## Notes
 
-Boss Mechanics (summary)
-- Blaster: Multi-phase attack patterns based on health
-- Slasher: Rotates, charges with dash attacks
-- Sentinel: Spawns defensive walls and burst-fires
-- Railgun: Line-shot attacks with barrel tracking
-- Overlord: Summons waves of minions based on thresholds
-
-Admin Features
-- Access admin panel at /admin (requires admin privileges)
-- Adjust game entry price in real-time
-- Monitor active game sessions and view stats
-
-## API Endpoints (summary)
-- GET / - Main game interface
-- POST /payIn - Process game entry payment
-- POST /startGameSession - Initialize server-side game session
-- POST /recordGameEvent - Validate and record game events
-- POST /endGame - End session and process payouts
-- GET /admin - Admin panel (admin only)
-- POST /admin/updatePrice - Update game price (admin only)
-
-## Development Notes
-
-Adding New Bosses
-- Create boss class in boss.js following existing patterns
-- Add to availableBosses array in main.js
-- Implement required methods: update(), render(), takeDamage()
-
-Modifying Game Balance
-- Adjust enemy health/damage multipliers in enemy constructors
-- Modify wave requirements and progression in main.js
-- Update upgrade effects in the generateUpgradeOptions() method
-
-Database Changes
-- Update schema in db/init.sql
-- Modify initialization in scripts/init-db.js
-- Restart server after schema changes
-
-Contributing
-- Open issues for bugs or feature requests
-- Submit PRs against the main branch
-- Keep changes focused and well-documented
-- Test thoroughly before submitting
-
-License
-This project is part of the Formbar classroom management ecosystem. Please respect the educational nature of this project and ensure proper Formbar integration before deployment.
-
-Note: Ensure your Formbar server is running and properly configured and that you have a valid API key before starting the game server.
+- The repository is designed around Formbar classroom authentication and Digipogs payment flow.
+- If you change the game design again, update the README feature list and controls section to match the active UI.
 
