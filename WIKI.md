@@ -7,7 +7,7 @@ This wiki explains how the project is structured, how core systems work, and wha
 ### Tech stack
 - Backend: Node.js + Express (`app.js`)
 - Frontend: EJS template + browser JavaScript in `game/`
-- Realtime/networking: Socket.IO
+- Real-time networking: Socket.IO
 - Persistence: SQLite in `db/database.db` + sqlite session store
 
 ### Runtime flow
@@ -67,7 +67,7 @@ These are current quality gaps worth prioritizing:
 Before marking major game changes complete, run this review checklist:
 
 - [ ] Review with both project members
-- [ ] Review with Smithers
+- [ ] Review with Smithers (project reviewer)
 - [ ] Confirm gameplay flow still matches UI text and docs
 - [ ] Confirm auth/payment/admin routes still work end-to-end
 - [ ] Confirm DB init/setup steps are still accurate
