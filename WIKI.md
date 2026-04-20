@@ -58,7 +58,7 @@ These are current quality gaps worth prioritizing:
    `WAVE_COMPLETE` accepts client-sent wave/time data with limited validation.
 
 6. **Documentation and wording polish**  
-   Some player-facing text has spelling/consistency issues and should be cleaned up during UX polish.
+   Some player-facing text still has spelling issues (e.g., "depleat"/"sheild" in the menu copy) and should be cleaned up during UX polish.
 
 ---
 
