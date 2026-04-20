@@ -62,9 +62,9 @@ These are current quality gaps worth prioritizing:
 
 ---
 
-## 3) Required review before completion
+## 3) Required review before release
 
-Before marking major game changes complete, run this review checklist:
+Before releasing major game changes, run this review checklist:
 
 - [ ] Review with both project members
 - [ ] Review with Smithers (project reviewer)
