@@ -11,11 +11,11 @@ This wiki explains how the project is structured, how core systems work, and wha
 - Persistence: SQLite in `db/database.db` + sqlite session store
 
 ### Runtime flow
-1. User authenticates through Formbar OAuth (`/login` in `app.js`).
+1. User authenticates through the configured OAuth provider (`/login` in `app.js`).
 2. User reaches `/` and sees the game menu (`views/index.ejs`).
 3. User pays the entry fee (`/payIn`) unless admin bypass is used.
 4. Server creates an active game session (`/startGameSession`).
-5. Client sends gameplay events (for example `WAVE_COMPLETE`) to `/recordGameEvent`.
+5. Client sends gameplay events (e.g., `WAVE_COMPLETE`) to `/recordGameEvent`.
 6. Server validates session/rate limits and updates server-side progress.
 
 ### Core folders
@@ -23,7 +23,7 @@ This wiki explains how the project is structured, how core systems work, and wha
 - `game/`: gameplay code (player, enemies, towers, maps, waves, main loop)
 - `views/`: EJS pages (`index`, `login`, `admin`, `pay`)
 - `db/`: sqlite data + schema files
-- `scripts/`: utility scripts (for example DB init)
+- `scripts/`: utility scripts (e.g., DB init)
 
 ### Local setup workflow
 1. Copy `.env_template` to `.env` and fill required keys.
