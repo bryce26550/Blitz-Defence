@@ -66,8 +66,8 @@ These are current quality gaps worth prioritizing:
 
 Before releasing major game changes, run this review checklist:
 
-- [ ] Review with both project members
-- [ ] Review with Smithers (project reviewer)
+- [ ] Review with both project members (the two core maintainers)
+- [ ] Review with Smithers (final reviewer/approver)
 - [ ] Confirm gameplay flow still matches UI text and docs
 - [ ] Confirm auth/payment/admin routes still work end-to-end
 - [ ] Confirm DB init/setup steps are still accurate
