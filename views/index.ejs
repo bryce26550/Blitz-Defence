@@ -40,6 +40,15 @@
     <audio id="bossDefeat" loop preload="auto">
         <source src="sfx/bossDefeat.wav" type="audio/wav">
     </audio>
+    <audio id="levelUp" preload="auto">
+        <source src="sfx/level_up.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="megaman" preload="auto">
+        <source src="sfx/megaman.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="plankton" preload="auto">
+        <source src="sfx/plankton.mp3" type="audio/mpeg">
+    </audio>
     <audio id="settingOn" preload="auto">
         <source src="sfx/soundon.mp3" type="audio/mpeg">
     </audio>
@@ -80,7 +89,10 @@
                 <div id="towerUpgradePanel" class="inactive">
                     <div id="towerUpgradeTitle" class="tower-upgrade-title">No Tower Selected</div>
                     <div id="towerUpgradeBody" class="tower-upgrade-body">Click a placed tower to view upgrades.</div>
-                    <button id="towerUpgradeBtn" class="tower-upgrade-btn" disabled>Upgrade</button>
+                    <div class="tower-upgrade-actions">
+                        <button id="towerUpgradeBtn" class="tower-upgrade-btn" disabled>Upgrade</button>
+                        <button id="towerSellBtn" class="tower-sell-btn" disabled>Sell</button>
+                    </div>
                 </div>
             </div>
             <button id="storeToggleBtn" class="store-toggle-btn" type="button" aria-expanded="false" aria-controls="towerShop towerUpgradePanel">Store</button>

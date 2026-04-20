@@ -334,21 +334,24 @@ const TOWER_UPGRADES = {
             }
         },
         {
-            id: 'doubleBarrel',
+            id: 'shortCircuit',
             tier: 4,
-            name: 'Double Barrel',
-            description: 'Two barrels, doubling the number of projectiles.',
+            name: 'Short Circuit',
+            description: 'A short circuit in the firing mechanism causes enhanced range and damage, but reduces fire rate.',
             cost: 2450,
             image: '/img/megaman.png',
             apply: (tower) => {
-                tower.projectileCount *= 2;
+                tower.damage += 1;
+                tower.range += 8;
+                scaleFireRate(tower, 0.8, 100);
             }
         },
         {
             id: 'overdrive',
             tier: 5,
             name: 'Overdrive',
-            description: 'Time to take this puppy into overdrive. Increased damage and pierce, but slower fire rate.',
+            //update fire rate to be faster since its description has been upated to be faster instead of slower
+            description: 'Time to take this puppy into overdrive. Increased damage and pierce, and a faster fire rate.',
             cost: 5500,
             image: '/img/megaman.png',
             apply: (tower) => {
@@ -378,6 +381,8 @@ const TOWER_UPGRADES = {
             description: 'A lucky charm that allows you to try your luck and get a different tower/upgrade.',
             cost: 50,
             image: '/img/pokerTable.jpg',
+            //Randomly apply upgrades from other towers. Only applies one upgrade and cannot apply gambler upgrades to avoid infinite loops.
+            //Maybe change it so it has a chance to get a random other towers upgrade/look like them until end of turn
             apply: (tower) => {
                 const rolls = [
                     () => { tower.damage += 2; },
@@ -683,7 +688,7 @@ const TOWER_UPGRADES = {
             description: 'Fires two more bullets in the burst with faster fire rate.',
             cost: 5000,
             image: '/img/burst.png',
-            apply: (tower) => {
+            apply: (tower) => { 
                 tower.projectileCount += 2;
                 scaleFireRate(tower, 0.9, 55);
             }
@@ -767,6 +772,7 @@ class Tower {
         this.level = 1;
         this.appliedUpgradeIds = [];
         this.currentUpgradeImage = def.image || null;
+        this.totalSpent = Number.isFinite(def.cost) ? def.cost : 0;
 
         this.fireCooldown = 0;
         this.hackCooldown = this.hackInterval;
@@ -796,11 +802,16 @@ class Tower {
 
         upgrade.apply(this);
         this.appliedUpgradeIds.push(upgrade.id);
+        this.totalSpent += Number.isFinite(upgrade.cost) ? upgrade.cost : 0;
         if (upgrade.image) {
             this.currentUpgradeImage = upgrade.image;
         }
         this.level += 1;
         return upgrade;
+    }
+
+    getSellValue() {
+        return Math.floor(this.totalSpent * 0.63);
     }
 
     isMaxUpgradeLevel() {
@@ -855,7 +866,7 @@ class Tower {
      * @param {Array} bullets - shared game bullets array
      */
     shoot(bullets) {
-        if (!this.target || this.fireCooldown > 0) return;
+        if (!this.target || this.fireCooldown > 0) return false;
         this.fireCooldown = this.fireRate;
 
         const cx = this.x + this.width / 2;
@@ -866,7 +877,7 @@ class Tower {
         const dx = tx - cx;
         const dy = ty - cy;
         const len = Math.sqrt(dx * dx + dy * dy);
-        if (len === 0) return;
+        if (len === 0) return false;
 
         const baseAngle = Math.atan2(dy, dx);
         const count = this.projectileCount;
@@ -909,6 +920,8 @@ class Tower {
 
             bullets.push(bullet);
         }
+
+        return true;
     }
 
     render(ctx) {
