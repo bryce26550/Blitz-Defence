@@ -20,7 +20,7 @@ function hidePayment() {
 }
 
 //Some don't work on intended or just need some touching up before being added to the shop
-const AVAILABLE_TOWER_SHOP_KEYS = new Set(['shooter', 'blaster', 'kid']);
+const AVAILABLE_TOWER_SHOP_KEYS = new Set(['shooter', 'blaster', 'wizard']);
 
 function isTowerShopAvailable(key) {
     return AVAILABLE_TOWER_SHOP_KEYS.has(key);
@@ -158,6 +158,10 @@ class Game {
         this.bosses = [];
         this.friendlySummons = [];
         this.particles = [];
+        this.spellAnimations = [];
+        this.spellZones = [];
+        this.trackWalls = [];
+        this.towerBuffs = [];
 
         this.exp = 0;
         this.level = 1;
@@ -198,7 +202,13 @@ class Game {
             mikuBeam: document.getElementById('mikuBeam'),
             scaryDiscord: document.getElementById('scaryDiscord'),
             flintChicken: document.getElementById('flintChicken'),
-            getOffFloor: document.getElementById('getOffFloor')
+            getOffFloor: document.getElementById('getOffFloor'),
+            wizardFireball: document.getElementById('wizardFireball'),
+            wizardIceStorm: document.getElementById('wizardIceStorm'),
+            wizardArcaneSurge: document.getElementById('wizardArcaneSurge'),
+            wizardEarthquake: document.getElementById('wizardEarthquake'),
+            wizardFog: document.getElementById('wizardFog'),
+            wizardDoubleStrike: document.getElementById('wizardDoubleStrike')
         }
 
         Object.values(this.soundEffects).forEach(sound => {
@@ -1440,6 +1450,8 @@ class Game {
         ];
 
         this.updateSupportTowers(deltaTime, allEnemies);
+        this.castWizardSpells(deltaTime, allEnemies);
+        this.updateSpellStates(deltaTime);
 
         this.placedTowers.forEach(tower => {
             tower.update(deltaTime, allEnemies);
@@ -1448,6 +1460,9 @@ class Game {
             const hasMaximumOverdrive = tower.appliedUpgradeIds && tower.appliedUpgradeIds.includes('plankton');
             if (fired && tower.type === 'blaster' && hasOverdrive && !hasMaximumOverdrive) {
                 this.playSound('megaman');
+            }
+            if (fired && tower.type === 'wizard') {
+                this.playSound('wizardFireball');
             }
         });
     }
@@ -1641,6 +1656,284 @@ class Game {
 
                     tower.summonCooldown = Math.max(250, tower.summonSpeed || 2500);
                 }
+            }
+        }
+    }
+
+    getAllEnemies() {
+        return [
+            ...this.enemies,
+            ...this.shooters,
+            ...this.tanks,
+            ...this.sprinters,
+            ...this.bosses
+        ];
+    }
+
+    addSpellAnimation(type, x, y, options = {}) {
+        this.spellAnimations.push({
+            type,
+            x,
+            y,
+            radius: options.radius || 30,
+            life: options.life || 600,
+            maxLife: options.life || 600,
+            color: options.color || '#ffffff'
+        });
+    }
+
+    getEnemySpeedMultiplier(enemy, now) {
+        let multiplier = 1;
+
+        if ((enemy.spellSlowUntil || 0) > now) {
+            multiplier = Math.min(multiplier, enemy.spellSlowMultiplier || 1);
+        }
+
+        for (let i = 0; i < this.spellZones.length; i++) {
+            const zone = this.spellZones[i];
+            if (!zone || zone.type !== 'slow' || zone.expiresAt <= now) continue;
+            const ex = enemy.x + (enemy.width || 0) / 2;
+            const ey = enemy.y + (enemy.height || 0) / 2;
+            const dx = ex - zone.x;
+            const dy = ey - zone.y;
+            if ((dx * dx + dy * dy) <= zone.radius * zone.radius) {
+                multiplier = Math.min(multiplier, zone.multiplier || 1);
+            }
+        }
+
+        return Math.max(0.2, multiplier);
+    }
+
+    handleTrackWallCollision(enemy, deltaTime) {
+        for (let i = 0; i < this.trackWalls.length; i++) {
+            const wall = this.trackWalls[i];
+            if (!wall || wall.hp <= 0) continue;
+            if (!this.checkCollision(enemy, wall)) continue;
+
+            const breakRate = Math.max(0.1, (enemy.damage || 1) * 0.025) * (deltaTime / 16);
+            wall.hp -= breakRate;
+
+            if (wall.hp <= 0) {
+                this.addSpellAnimation('quakeBreak', wall.x + wall.width / 2, wall.y + wall.height / 2, {
+                    radius: 26,
+                    life: 500,
+                    color: '#d7ccc8'
+                });
+                this.playSound('wizardEarthquake');
+            }
+            return true;
+        }
+        return false;
+    }
+
+    updateEnemyGroup(enemyList, deltaTime) {
+        const now = Date.now();
+        return enemyList.filter(enemy => {
+            if ((enemy.stunTimer || 0) > 0) {
+                enemy.stunTimer -= deltaTime;
+            } else if (!this.handleTrackWallCollision(enemy, deltaTime)) {
+                const speedMultiplier = this.getEnemySpeedMultiplier(enemy, now);
+                const baseSpeed = enemy.speed;
+                enemy.speed = baseSpeed * speedMultiplier;
+                enemy.update(deltaTime);
+                enemy.speed = baseSpeed;
+            }
+            return enemy.hp > 0;
+        });
+    }
+
+    updateTowerBuffStates(now) {
+        for (let i = 0; i < this.placedTowers.length; i++) {
+            const tower = this.placedTowers[i];
+            if (tower) {
+                tower.attackSpeedMultiplier = 1;
+            }
+        }
+
+        for (let i = 0; i < this.towerBuffs.length; i++) {
+            const buff = this.towerBuffs[i];
+            if (!buff || buff.expiresAt <= now) continue;
+
+            for (let t = 0; t < this.placedTowers.length; t++) {
+                const tower = this.placedTowers[t];
+                if (!tower || tower === buff.sourceTower) continue;
+                const tx = tower.x + tower.width / 2;
+                const ty = tower.y + tower.height / 2;
+                const dx = tx - buff.x;
+                const dy = ty - buff.y;
+                if ((dx * dx + dy * dy) <= buff.radius * buff.radius) {
+                    tower.attackSpeedMultiplier = Math.min(
+                        tower.attackSpeedMultiplier || 1,
+                        buff.attackSpeedMultiplier || 1
+                    );
+                }
+            }
+        }
+    }
+
+    updateSpellStates(deltaTime) {
+        const now = Date.now();
+
+        this.spellAnimations = this.spellAnimations.filter(anim => {
+            anim.life -= deltaTime;
+            return anim.life > 0;
+        });
+
+        this.spellZones = this.spellZones.filter(zone => zone && zone.expiresAt > now);
+        this.towerBuffs = this.towerBuffs.filter(buff => buff && buff.expiresAt > now);
+        this.trackWalls = this.trackWalls.filter(wall => wall && wall.hp > 0 && wall.expiresAt > now);
+
+        this.updateTowerBuffStates(now);
+    }
+
+    castWizardSpells(deltaTime, allEnemies) {
+        if (!allEnemies || allEnemies.length === 0) return;
+
+        for (let i = 0; i < this.placedTowers.length; i++) {
+            const tower = this.placedTowers[i];
+            if (!tower || tower.type !== 'wizard') continue;
+
+            tower.spellCooldown = Math.max(0, (tower.spellCooldown || tower.spellCastRate || 0) - deltaTime);
+            tower.supportCooldown = Math.max(0, (tower.supportCooldown || tower.supportCastRate || 0) - deltaTime);
+
+            const cx = tower.x + tower.width / 2;
+            const cy = tower.y + tower.height / 2;
+
+            if (tower.spellCastRate > 0 && tower.spellCooldown <= 0) {
+                const target = this.findNearestEnemy(cx, cy, allEnemies, tower.range + 30);
+                if (target) {
+                    const tx = target.x + (target.width || 0) / 2;
+                    const ty = target.y + (target.height || 0) / 2;
+                    const spells = [];
+                    if (tower.iceStorm) spells.push('iceStorm');
+                    if (tower.arcaneSurge) spells.push('arcaneSurge');
+                    if (tower.earthquake) spells.push('earthquake');
+                    const spell = spells.length > 0
+                        ? spells[Math.floor(Math.random() * spells.length)]
+                        : 'fireball';
+
+                    if (spell === 'iceStorm') {
+                        const dx = tx - cx;
+                        const dy = ty - cy;
+                        const len = Math.sqrt(dx * dx + dy * dy) || 1;
+                        const speed = Math.max(0.55, (tower.projectileSpeed || 1) * 0.85);
+
+                        const bullet = new Bullet(cx, cy, true);
+                        bullet.isPlayer = true;
+                        bullet.fromTower = true;
+                        bullet.sourceTower = tower;
+                        bullet.isWizardIceStorm = true;
+                        bullet.width = 11;
+                        bullet.height = 11;
+                        bullet.damage = Math.max(1, Math.round((tower.damage || 1) * 0.75));
+                        bullet.pierce = 1;
+                        bullet.lifeRemaining = 2400;
+                        bullet.vx = (dx / len) * speed;
+                        bullet.vy = (dy / len) * speed;
+                        bullet.towerColor = '#90caf9';
+                        bullet.render = function(ctx) {
+                            const px = this.x + this.width / 2;
+                            const py = this.y + this.height / 2;
+                            ctx.save();
+                            ctx.fillStyle = 'rgba(144, 202, 249, 0.35)';
+                            ctx.beginPath();
+                            ctx.arc(px, py, this.width * 0.9, 0, Math.PI * 2);
+                            ctx.fill();
+
+                            ctx.fillStyle = '#b3e5fc';
+                            ctx.beginPath();
+                            ctx.arc(px, py, this.width * 0.55, 0, Math.PI * 2);
+                            ctx.fill();
+                            ctx.restore();
+                        };
+                        this.bullets.push(bullet);
+                        this.playSound('wizardIceStorm');
+                    } else if (spell === 'arcaneSurge') {
+                        const surgeRadius = 60;
+                        for (let e = 0; e < allEnemies.length; e++) {
+                            const enemy = allEnemies[e];
+                            if (!enemy || enemy.hp <= 0) continue;
+                            const ex = enemy.x + (enemy.width || 0) / 2;
+                            const ey = enemy.y + (enemy.height || 0) / 2;
+                            const sdx = ex - tx;
+                            const sdy = ey - ty;
+                            if ((sdx * sdx + sdy * sdy) <= surgeRadius * surgeRadius) {
+                                const surgeDamage = Math.max(1, Math.round((tower.damage || 1) * 0.8));
+                                enemy.takeDamage ? enemy.takeDamage(surgeDamage) : (enemy.hp -= surgeDamage);
+                            }
+                        }
+                        this.addSpellAnimation('arcaneSurge', tx, ty, {
+                            radius: surgeRadius,
+                            life: 550,
+                            color: '#ba68c8'
+                        });
+                        this.playSound('wizardArcaneSurge');
+                    } else if (spell === 'earthquake') {
+                        const nearestTrack = this.getNearestTrackSpawn(tx, ty);
+                        if (nearestTrack) {
+                            const wallSize = 22;
+                            this.trackWalls.push({
+                                x: nearestTrack.x - wallSize / 2,
+                                y: nearestTrack.y - wallSize / 2,
+                                width: wallSize,
+                                height: wallSize,
+                                hp: 18,
+                                expiresAt: Date.now() + 5500
+                            });
+                            this.addSpellAnimation('earthquake', nearestTrack.x, nearestTrack.y, {
+                                radius: 36,
+                                life: 650,
+                                color: '#bcaaa4'
+                            });
+                            this.playSound('wizardEarthquake');
+                        }
+                    }
+                }
+
+                tower.spellCooldown = Math.max(1000, tower.spellCastRate || 7000);
+            }
+
+            if (tower.supportCastRate > 0 && tower.supportCooldown <= 0) {
+                if (tower.fog) {
+                    const fogTarget = this.findNearestEnemy(cx, cy, allEnemies, tower.range + 40);
+                    if (fogTarget) {
+                        const fx = fogTarget.x + (fogTarget.width || 0) / 2;
+                        const fy = fogTarget.y + (fogTarget.height || 0) / 2;
+                        this.spellZones.push({
+                            type: 'slow',
+                            x: fx,
+                            y: fy,
+                            radius: 90,
+                            multiplier: 0.55,
+                            expiresAt: Date.now() + Math.max(3000, tower.spellLength || 2000)
+                        });
+                        this.addSpellAnimation('fog', fx, fy, {
+                            radius: 90,
+                            life: Math.max(3000, tower.spellLength || 2000),
+                            color: '#90a4ae'
+                        });
+                        this.playSound('wizardFog');
+                    }
+                }
+
+                if (tower.doubleStrike) {
+                    this.towerBuffs.push({
+                        x: cx,
+                        y: cy,
+                        radius: tower.range + 50,
+                        attackSpeedMultiplier: 0.6,
+                        expiresAt: Date.now() + 15000,
+                        sourceTower: tower
+                    });
+                    this.addSpellAnimation('doubleStrike', cx, cy, {
+                        radius: tower.range + 50,
+                        life: 950,
+                        color: '#fff176'
+                    });
+                    this.playSound('wizardDoubleStrike');
+                }
+
+                tower.supportCooldown = Math.max(2200, tower.supportCastRate || 12000);
             }
         }
     }
@@ -2098,60 +2391,18 @@ class Game {
                 bullet.x > -50 && bullet.x < this.width + 50;
         });
 
-        // Update enemies
-        this.enemies = this.enemies.filter(enemy => {
-            if ((enemy.stunTimer || 0) > 0) {
-                enemy.stunTimer -= deltaTime;
-            } else {
-                enemy.update(deltaTime);
-            }
-            return enemy.hp > 0;
-        });
-
-        // Update shooters
-        this.shooters = this.shooters.filter(shooter => {
-            if ((shooter.stunTimer || 0) > 0) {
-                shooter.stunTimer -= deltaTime;
-            } else {
-                shooter.update(deltaTime);
-            }
-            return shooter.hp > 0;
-        });
-
-        // Update tanks
-        this.tanks = this.tanks.filter(tank => {
-            if ((tank.stunTimer || 0) > 0) {
-                tank.stunTimer -= deltaTime;
-            } else {
-                tank.update(deltaTime);
-            }
-            return tank.hp > 0;
-        });
-
-        // Update sprinters
-        this.sprinters = this.sprinters.filter(sprinter => {
-            if ((sprinter.stunTimer || 0) > 0) {
-                sprinter.stunTimer -= deltaTime;
-            } else {
-                sprinter.update(deltaTime);
-            }
-            return sprinter.hp > 0;
-        });
+        // Update enemies with shared spell effects and wall interactions.
+        this.enemies = this.updateEnemyGroup(this.enemies, deltaTime);
+        this.shooters = this.updateEnemyGroup(this.shooters, deltaTime);
+        this.tanks = this.updateEnemyGroup(this.tanks, deltaTime);
+        this.sprinters = this.updateEnemyGroup(this.sprinters, deltaTime);
 
         this.friendlySummons = this.friendlySummons.filter(summon => {
             summon.update(deltaTime);
             return summon.hp > 0;
         });
 
-        // Update enemies
-        this.bosses = this.enemies.filter(boss => {
-            if ((boss.stunTimer || 0) > 0) {
-                boss.stunTimer -= deltaTime;
-            } else {
-                boss.update(deltaTime);
-            }
-            return boss.hp > 0;
-        });
+        this.bosses = this.updateEnemyGroup(this.bosses, deltaTime);
 
 
         // Update particles
@@ -2281,6 +2532,24 @@ class Game {
             if (!bullet.fromTower) return;
 
             spawnRefractionShards(bullet, target);
+
+            if (bullet.isWizardIceStorm) {
+                const sx = target.x + (target.width || 0) / 2;
+                const sy = target.y + (target.height || 0) / 2;
+                this.spellZones.push({
+                    type: 'slow',
+                    x: sx,
+                    y: sy,
+                    radius: 70,
+                    multiplier: 0.45,
+                    expiresAt: Date.now() + 3000
+                });
+                this.addSpellAnimation('iceStorm', sx, sy, {
+                    radius: 70,
+                    life: 800,
+                    color: '#90caf9'
+                });
+            }
 
             if (bullet.stunChance && Math.random() < bullet.stunChance) {
                 const stunDuration = bullet.stunDuration || 800;
@@ -2570,6 +2839,99 @@ class Game {
         }
     }
 
+    renderSpellEffects(ctx) {
+        const now = Date.now();
+
+        for (let i = 0; i < this.spellZones.length; i++) {
+            const zone = this.spellZones[i];
+            if (!zone || zone.expiresAt <= now || zone.type !== 'slow') continue;
+
+            ctx.save();
+            ctx.fillStyle = 'rgba(140, 180, 200, 0.16)';
+            ctx.strokeStyle = 'rgba(180, 220, 255, 0.4)';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.arc(zone.x, zone.y, zone.radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        for (let i = 0; i < this.towerBuffs.length; i++) {
+            const buff = this.towerBuffs[i];
+            if (!buff || buff.expiresAt <= now) continue;
+
+            ctx.save();
+            ctx.strokeStyle = 'rgba(255, 241, 118, 0.35)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(buff.x, buff.y, buff.radius, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        for (let i = 0; i < this.trackWalls.length; i++) {
+            const wall = this.trackWalls[i];
+            if (!wall || wall.hp <= 0) continue;
+
+            const hpRatio = Math.max(0, Math.min(1, wall.hp / 18));
+            ctx.save();
+            ctx.fillStyle = '#6d4c41';
+            ctx.fillRect(wall.x, wall.y, wall.width, wall.height);
+            ctx.strokeStyle = '#d7ccc8';
+            ctx.lineWidth = 1.5;
+            ctx.strokeRect(wall.x, wall.y, wall.width, wall.height);
+
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+            ctx.fillRect(wall.x, wall.y - 6, wall.width, 4);
+            ctx.fillStyle = '#81c784';
+            ctx.fillRect(wall.x, wall.y - 6, wall.width * hpRatio, 4);
+            ctx.restore();
+        }
+
+        for (let i = 0; i < this.spellAnimations.length; i++) {
+            const anim = this.spellAnimations[i];
+            if (!anim || anim.life <= 0) continue;
+
+            const progress = 1 - (anim.life / Math.max(1, anim.maxLife));
+            const alpha = Math.max(0, 1 - progress);
+            const radius = anim.radius * (0.55 + progress * 0.75);
+
+            ctx.save();
+            if (anim.type === 'fog') {
+                ctx.fillStyle = `rgba(176, 190, 197, ${0.18 * alpha})`;
+                ctx.beginPath();
+                ctx.arc(anim.x, anim.y, radius, 0, Math.PI * 2);
+                ctx.fill();
+            } else if (anim.type === 'iceStorm') {
+                ctx.strokeStyle = `rgba(179, 229, 252, ${0.75 * alpha})`;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(anim.x, anim.y, radius, 0, Math.PI * 2);
+                ctx.stroke();
+            } else if (anim.type === 'doubleStrike') {
+                ctx.strokeStyle = `rgba(255, 241, 118, ${0.7 * alpha})`;
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(anim.x, anim.y, radius, 0, Math.PI * 2);
+                ctx.stroke();
+            } else if (anim.type === 'earthquake' || anim.type === 'quakeBreak') {
+                ctx.strokeStyle = `rgba(188, 170, 164, ${0.75 * alpha})`;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(anim.x, anim.y, radius, 0, Math.PI * 2);
+                ctx.stroke();
+            } else if (anim.type === 'arcaneSurge') {
+                ctx.strokeStyle = `rgba(186, 104, 200, ${0.8 * alpha})`;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(anim.x, anim.y, radius, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+            ctx.restore();
+        }
+    }
+
     async gameOver() {
         this.gameRunning = false;
         this.playSound('playerDefeat')
@@ -2601,6 +2963,10 @@ class Game {
         this.bosses = [];
         this.friendlySummons = [];
         this.particles = [];
+        this.spellAnimations = [];
+        this.spellZones = [];
+        this.trackWalls = [];
+        this.towerBuffs = [];
         this.placedTowers = [];
         this.selectedTower = null;
         this.selectedPlacedTower = null;
@@ -2664,6 +3030,7 @@ class Game {
         this.mapManager.renderPaths(this.ctx);
         this.mapManager.renderBase(this.ctx);
         this.mapManager.renderMapName(this.ctx);
+        this.renderSpellEffects(this.ctx);
 
         // Render placed towers (before enemies so they appear beneath)
         this.placedTowers.forEach(tower => tower.render(this.ctx));

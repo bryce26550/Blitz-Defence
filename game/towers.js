@@ -65,7 +65,7 @@ const TOWER_TYPES = {
     },
     overlord: {
         name: 'Overlord',
-        cost: 650,
+        cost: 1000,
         damage: 1,
         range: 25,
         fireRate: 1250,
@@ -127,7 +127,20 @@ const TOWER_TYPES = {
     },
     wizard: {
         name: 'Wizard',
-        //placeholder
+        cost: 1000,
+        damage: 2,
+        range: 100,
+        fireRate: 1250,
+        spellCastRate: 7000,
+        supportCastRate: 12000,
+        spellLength: 2000,
+        fireball: true,
+        color: '#0004ff',
+        projectileCount: 1,
+        projectileSpeed: 1,
+        width: 30,
+        height: 30,
+        image: '/img/wizard.png'
     },
     kid: {
         name: 'Silly Billy',
@@ -135,9 +148,6 @@ const TOWER_TYPES = {
         damage: 0,
         range: 85,
         fireRate: 900,
-        projectileCount: 1,
-        projectileSpeed: 1.15,
-        projectileLife: 1,
         stunChance: 1,
         stunDuration: 2000,
         width: 30,
@@ -727,6 +737,40 @@ const TOWER_UPGRADES = {
                 tightenSpread(tower, 0.7);
             }
         }
+    ],
+    wizard: [
+        {
+            id: 'spellweaving',
+            tier: 1,
+            name: 'Spellweaving',
+            description: 'Cast faster and unlock Ice Storm, Earthquake, and Arcane Surge.',
+            cost: 4000,
+            image: '/img/wizard.png',
+            apply: (tower) => {
+                scaleFireRate(tower, 0.85, 80);
+                tower.spellCastRate = Math.max(1800, Math.round((tower.spellCastRate || 7000) * 0.8));
+                tower.supportCastRate = Math.max(4000, Math.round((tower.supportCastRate || 12000) * 0.9));
+                tower.arcaneSurge = true;
+                tower.iceStorm = true;
+                tower.earthquake = true;
+            }
+        },
+        {
+            id: 'stormMastery',
+            tier: 2,
+            name: 'Storm Mastery',
+            description: 'Youve called upon magic from beyond your realm unlocking new spells and increasing spell duration and power.+',
+            cost: 6000,
+            image: '/img/magic.png',
+            apply: (tower) => {
+                tower.damage += 1;
+                tower.spellCastRate = Math.max(1500, Math.round((tower.spellCastRate || 7000) * 0.85));
+                tower.supportCastRate = Math.max(3200, Math.round((tower.supportCastRate || 12000) * 0.75));
+                tower.spellLength = (tower.spellLength || 2000) + 1500;
+                tower.fog = true;
+                tower.doubleStrike = true;
+            }
+        }
     ]
 };
 
@@ -791,6 +835,17 @@ class Tower {
         this.stunChance = def.stunChance || 0;
         this.stunDuration = def.stunDuration || 0;
 
+        this.fireball = !!def.fireball;
+        this.arcaneSurge = !!def.arcaneSurge;
+        this.iceStorm = !!def.iceStorm;
+        this.earthquake = !!def.earthquake;
+        this.fog = !!def.fog;
+        this.doubleStrike = !!def.doubleStrike;
+        this.spellCastRate = def.spellCastRate || 0;
+        this.supportCastRate = def.supportCastRate || 0;
+        this.spellLength = def.spellLength || 2000;
+        this.spellPower = def.spellPower || 1;
+
         this.level = 1;
         this.appliedUpgradeIds = [];
         this.currentUpgradeImage = def.image || null;
@@ -798,6 +853,8 @@ class Tower {
         this.totalHackedMoney = 0;
 
         this.fireCooldown = 0;
+        this.spellCooldown = this.spellCastRate;
+        this.supportCooldown = this.supportCastRate;
         this.hackCooldown = this.hackInterval;
         this.regenCooldown = this.regenSpeed;
         this.summonCooldown = this.summonSpeed;
@@ -890,7 +947,7 @@ class Tower {
      */
     shoot(bullets) {
         if (!this.target || this.fireCooldown > 0) return false;
-        this.fireCooldown = this.fireRate;
+        this.fireCooldown = this.fireRate * (this.attackSpeedMultiplier || 1);
 
         const cx = this.x + this.width / 2;
         const cy = this.y + this.height / 2;
@@ -1005,6 +1062,31 @@ class Tower {
                     ctx.arc(-8.5, -2.5, 2, 0, Math.PI * 2);
                     ctx.fill();
 
+                    ctx.restore();
+                };
+            } else if (this.type === 'wizard' && this.fireball) {
+                bullet.width = 9;
+                bullet.height = 9;
+                bullet.lifeRemaining = Math.max(bullet.lifeRemaining || 0, 900);
+                bullet.render = function(ctx) {
+                    const cx = this.x + this.width / 2;
+                    const cy = this.y + this.height / 2;
+
+                    ctx.save();
+                    ctx.fillStyle = 'rgba(255, 126, 41, 0.35)';
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, this.width * 0.9, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.fillStyle = '#ff6a00';
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, this.width * 0.58, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.fillStyle = '#ffe082';
+                    ctx.beginPath();
+                    ctx.arc(cx + 1.5, cy - 1.5, this.width * 0.25, 0, Math.PI * 2);
+                    ctx.fill();
                     ctx.restore();
                 };
             }
