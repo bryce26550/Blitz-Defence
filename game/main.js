@@ -20,7 +20,7 @@ function hidePayment() {
 }
 
 //Some don't work on intended or just need some touching up before being added to the shop
-const AVAILABLE_TOWER_SHOP_KEYS = new Set(['shooter', 'blaster', 'wizard']);
+const AVAILABLE_TOWER_SHOP_KEYS = new Set(['shooter', 'blaster', 'wizard', 'hacker', 'overlord', 'generator', 'sentinel', 'railgun']);
 
 function isTowerShopAvailable(key) {
     return AVAILABLE_TOWER_SHOP_KEYS.has(key);
@@ -208,7 +208,8 @@ class Game {
             wizardArcaneSurge: document.getElementById('wizardArcaneSurge'),
             wizardEarthquake: document.getElementById('wizardEarthquake'),
             wizardFog: document.getElementById('wizardFog'),
-            wizardDoubleStrike: document.getElementById('wizardDoubleStrike')
+            wizardDoubleStrike: document.getElementById('wizardDoubleStrike'),
+            diceRoll: document.getElementById('diceRoll')
         }
 
         Object.values(this.soundEffects).forEach(sound => {
@@ -656,7 +657,9 @@ class Game {
         if (!applied) return;
 
         this.money -= applied.cost;
-        if (tower.type === 'hacker' && tower.isMaxUpgradeLevel && tower.isMaxUpgradeLevel()) {
+        if (tower.type === 'gambler' && applied.id === 'luckyCharm') {
+            this.playSound('diceRoll');
+        } else if (tower.type === 'hacker' && tower.isMaxUpgradeLevel && tower.isMaxUpgradeLevel()) {
             this.playSound('getOffFloor');
         } else if (tower.type === 'overlord' && tower.isMaxUpgradeLevel && tower.isMaxUpgradeLevel()) {
             this.playSound('flintChicken');
@@ -1541,7 +1544,7 @@ class Game {
         const summonSpeed = Math.max(0.65, (tower.projectileSpeed || 1) * (tower.summonMoveSpeedMultiplier || 1));
         const summonDamage = Math.max(
             1,
-            Math.round((tower.damage || 1) * (tower.summonDamageMultiplier || 1) * (bossSummon ? 2 : 1))
+            Math.round((tower.damage || 1) * (tower.summonDamageMultiplier || 1) * (bossSummon ? 1.25 : 1) * 0.65)
         );
 
         const summonSize = bossSummon ? 26 : 22;
@@ -1583,7 +1586,7 @@ class Game {
         bullet.vy = (dy / len) * speed;
         bullet.damage = Math.max(
             1,
-            Math.round((tower.damage || 1) * (tower.summonDamageMultiplier || 1) * (bossSummon ? 2 : 1))
+            Math.round((tower.damage || 1) * (tower.summonDamageMultiplier || 1) * (bossSummon ? 1.25 : 1) * 0.65)
         );
         bullet.pierce = 1;
         bullet.isPlayer = true;
@@ -1654,7 +1657,7 @@ class Game {
                         this.spawnFriendlySummon(tower, bossSummon);
                     }
 
-                    tower.summonCooldown = Math.max(250, tower.summonSpeed || 2500);
+                    tower.summonCooldown = Math.max(1200, tower.summonSpeed || 2500);
                 }
             }
         }
@@ -2485,6 +2488,63 @@ class Game {
             return damage;
         };
 
+        const getBeamLineForBullet = (bullet) => {
+            if (!bullet || !bullet.isRailBeam) return null;
+
+            const centerX = bullet.x + (bullet.width || 0) / 2;
+            const centerY = bullet.y + (bullet.height || 0) / 2;
+            const velocityLength = Math.hypot(bullet.vx || 0, bullet.vy || 0) || 1;
+            const dirX = (bullet.vx || 0) / velocityLength;
+            const dirY = (bullet.vy || 0) / velocityLength;
+
+            const thickness = bullet.beamThickness || (bullet.isMikuBeam ? 18 : 6);
+
+            if (bullet.isMikuBeam) {
+                const source = bullet.sourceTower;
+                const startX = source ? (source.x + source.width / 2) : centerX;
+                const startY = source ? (source.y + source.height / 2) : centerY;
+                const fullScreenLength = Math.hypot(this.width, this.height) + 180;
+                return {
+                    startX,
+                    startY,
+                    endX: startX + dirX * fullScreenLength,
+                    endY: startY + dirY * fullScreenLength,
+                    width: thickness
+                };
+            }
+
+            const beamLength = bullet.beamLength || 120;
+            return {
+                startX: centerX - dirX * beamLength,
+                startY: centerY - dirY * beamLength,
+                endX: centerX,
+                endY: centerY,
+                width: thickness
+            };
+        };
+
+        const canBeamDamageTarget = (bullet, target) => {
+            if (!bullet || !bullet.isRailBeam) return true;
+            if (!bullet._beamHitTargets) {
+                bullet._beamHitTargets = new WeakSet();
+            }
+            if (bullet._beamHitTargets.has(target)) {
+                return false;
+            }
+            bullet._beamHitTargets.add(target);
+            return true;
+        };
+
+        const bulletHitsEnemy = (bullet, enemy) => {
+            if (!bullet || !enemy) return false;
+            if (bullet.isRailBeam) {
+                const beamLine = getBeamLineForBullet(bullet);
+                if (!beamLine) return false;
+                return this.checkLineCollision(enemy, beamLine);
+            }
+            return this.checkCollision(bullet, enemy);
+        };
+
         const spawnRefractionShards = (bullet, target) => {
             if (!bullet.fromTower || bullet.isRefractionShard) return;
 
@@ -2644,8 +2704,9 @@ class Game {
 
                 // Check vs enemies
                 for (let j = this.enemies.length - 1; j >= 0; j--) {
-                if (this.checkCollision(bullet, this.enemies[j])) {
+                if (bulletHitsEnemy(bullet, this.enemies[j])) {
                     const enemy = this.enemies[j];
+                    if (!canBeamDamageTarget(bullet, enemy)) continue;
                     const damage = getTowerAdjustedDamage(bullet, enemy);
 
                     // Damage the enemy first
@@ -2672,8 +2733,9 @@ class Game {
 
             // Check vs shooters
             for (let j = this.shooters.length - 1; j >= 0 && hitCount < bullet.pierce; j--) {
-                if (this.checkCollision(bullet, this.shooters[j])) {
+                if (bulletHitsEnemy(bullet, this.shooters[j])) {
                     const shooter = this.shooters[j];
+                    if (!canBeamDamageTarget(bullet, shooter)) continue;
                     const damage = getTowerAdjustedDamage(bullet, shooter);
 
                     // Damage the enemy first
@@ -2697,17 +2759,18 @@ class Game {
 
             // Check vs tanks
             for (let j = this.tanks.length - 1; j >= 0 && hitCount < bullet.pierce; j--) {
-                if (this.checkCollision(bullet, this.tanks[j])) {
-                    const damage = getTowerAdjustedDamage(bullet, this.tanks[j]);
-                    this.tanks[j].takeDamage(damage);
-                    applyTowerHitEffects(bullet, this.tanks[j]);
+                if (bulletHitsEnemy(bullet, this.tanks[j])) {
+                    const tank = this.tanks[j];
+                    if (!canBeamDamageTarget(bullet, tank)) continue;
+                    const damage = getTowerAdjustedDamage(bullet, tank);
+                    tank.takeDamage(damage);
+                    applyTowerHitEffects(bullet, tank);
                     this.createExplosion(bullet.x, bullet.y);
                     this.playSound('enemyHit');
 
-                    if (this.tanks[j].hp <= 0) {
-                        const tanks = this.tanks[j];
-                        this.createExplosion(this.tanks[j].x, this.tanks[j].y);
-                        this.money += tanks.worth;
+                    if (tank.hp <= 0) {
+                        this.createExplosion(tank.x, tank.y);
+                        this.money += tank.worth;
                         this.tanks.splice(j, 1);
                         this.addExp(25);
                         if (this.player.lifeSteal && this.player.health < this.player.maxHealth) {
@@ -2721,17 +2784,18 @@ class Game {
 
             // Check vs sprinters
             for (let j = this.sprinters.length - 1; j >= 0 && hitCount < bullet.pierce; j--) {
-                if (this.checkCollision(bullet, this.sprinters[j])) {
-                    const damage = getTowerAdjustedDamage(bullet, this.sprinters[j]);
-                    this.sprinters[j].takeDamage(damage);
-                    applyTowerHitEffects(bullet, this.sprinters[j]);
+                if (bulletHitsEnemy(bullet, this.sprinters[j])) {
+                    const sprinter = this.sprinters[j];
+                    if (!canBeamDamageTarget(bullet, sprinter)) continue;
+                    const damage = getTowerAdjustedDamage(bullet, sprinter);
+                    sprinter.takeDamage(damage);
+                    applyTowerHitEffects(bullet, sprinter);
                     this.createExplosion(bullet.x, bullet.y);
                     this.playSound('enemyHit');
 
-                    if (this.sprinters[j].hp <= 0) {
-                        const sprinters = this.sprinters[j];
-                        this.createExplosion(this.sprinters[j].x, this.sprinters[j].y);
-                        this.money += sprinters.worth;
+                    if (sprinter.hp <= 0) {
+                        this.createExplosion(sprinter.x, sprinter.y);
+                        this.money += sprinter.worth;
                         this.sprinters.splice(j, 1);
                         this.addExp(35);
                         if (this.player.lifeSteal && this.player.health < this.player.maxHealth) {
@@ -2745,8 +2809,9 @@ class Game {
 
             // Check vs Boss
             for (let j = this.bosses.length - 1; j >= 0; j--) {
-                if (this.checkCollision(bullet, this.bosses[j])) {
+                if (bulletHitsEnemy(bullet, this.bosses[j])) {
                     const boss = this.bosses[j];
+                    if (!canBeamDamageTarget(bullet, boss)) continue;
                     const damage = getTowerAdjustedDamage(bullet, boss);
 
                     // Damage the boss first

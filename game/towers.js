@@ -72,8 +72,8 @@ const TOWER_TYPES = {
         width: 30,
         height: 30,
         seeHidden: true,
-        summonSpeed: 4000,
-        summonCount: 3,
+        summonSpeed: 8500,
+        summonCount: 2,
         color: '#795548',
         image: '/img/chickenJockey.png'
     },
@@ -102,21 +102,22 @@ const TOWER_TYPES = {
         color: '#00BCD4',
         width: 30,
         height: 30,
-        regenSpeed : 5000,
-        regenAmount : 15,
-        regenMax: 30,
+        regenSpeed : 9500,
+        regenAmount : 10,
+        regenMax: 20,
         image: '/img/gen.png'
     },
     sentinel: {
         name: 'Sentinel',
-        range: 25,
+        range: 130,
         damage: 1,
-        fireRate: 500,
+        fireRate: 80,
         pierce: 0,
         projectileSpeed: 1,
         projectileLife: 1,
         projectileCount: 3,
         spreadDegrees: 70,
+        burstShotDelay: 110,
         seeHidden: false,
         damageReinforced: false,
         width: 40,
@@ -496,7 +497,7 @@ const TOWER_UPGRADES = {
             cost: 850,
             image: '/img/chickenJockey.png',
             apply: (tower) => {
-                tower.summonSpeed = Math.max(250, Math.round((tower.summonSpeed || 2500) * 0.8));
+                tower.summonSpeed = Math.max(1200, Math.round((tower.summonSpeed || 2500) * 0.92));
                 tower.summonCount = (tower.summonCount || 1) + 1;
             }
         },
@@ -508,8 +509,8 @@ const TOWER_UPGRADES = {
             cost: 1900,
             image: '/img/chickenJockey.png',
             apply: (tower) => {
-                tower.summonDamageMultiplier = (tower.summonDamageMultiplier || 1) + 0.5;
-                tower.summonMoveSpeedMultiplier = (tower.summonMoveSpeedMultiplier || 1) + 0.25;
+                tower.summonDamageMultiplier = (tower.summonDamageMultiplier || 1) + 0.2;
+                tower.summonMoveSpeedMultiplier = (tower.summonMoveSpeedMultiplier || 1) + 0.1;
             }
         },
         {
@@ -520,8 +521,8 @@ const TOWER_UPGRADES = {
             cost: 3500,
             image: '/img/chickenJockey.png',
             apply: (tower) => {
-                tower.summonCount = (tower.summonCount || 1) + 2;
-                tower.summonMoveSpeedMultiplier = (tower.summonMoveSpeedMultiplier || 1) + 0.15;
+                tower.summonCount = (tower.summonCount || 1) + 1;
+                tower.summonMoveSpeedMultiplier = (tower.summonMoveSpeedMultiplier || 1) + 0.1;
             }
         },
         {
@@ -543,8 +544,8 @@ const TOWER_UPGRADES = {
             cost: 7500,
             image: '/img/chickenJockey.png',
             apply: (tower) => {
-                tower.summonCount = Math.max(1, (tower.summonCount || 1) * 2);
-                tower.summonSpeed = Math.round((tower.summonSpeed || 2500) * 1.2);
+                tower.summonCount = (tower.summonCount || 1) + 1;
+                tower.summonSpeed = Math.round((tower.summonSpeed || 2500) * 1.5);
             }
         },
         {
@@ -555,9 +556,9 @@ const TOWER_UPGRADES = {
             cost: 50,
             image: '/img/chickenJockey.png',
             apply: (tower) => {
-                tower.summonCount = (tower.summonCount || 1) + 3;
-                tower.summonMoveSpeedMultiplier = (tower.summonMoveSpeedMultiplier || 1) + 0.4;
-                tower.summonSpeed = Math.max(200, Math.round((tower.summonSpeed || 2500) * 0.75));
+                tower.summonCount = (tower.summonCount || 1) + 1;
+                tower.summonMoveSpeedMultiplier = (tower.summonMoveSpeedMultiplier || 1) + 0.2;
+                tower.summonSpeed = Math.max(1200, Math.round((tower.summonSpeed || 2500) * 1.25));
             }
         }
     ],
@@ -646,7 +647,7 @@ const TOWER_UPGRADES = {
             cost: 1300,
             image: '/img/gen.png',
             apply: (tower) => {
-                tower.regenSpeed = Math.max(250, Math.round((tower.regenSpeed || 5000) * 0.5));
+                tower.regenSpeed = Math.max(1000, Math.round((tower.regenSpeed || 5000) * 0.85));
             }
         },
         {
@@ -673,6 +674,7 @@ const TOWER_UPGRADES = {
             apply: (tower) => {
                 scaleFireRate(tower, 0.9, 70);
                 tightenSpread(tower, 0.75);
+                tower.range += 4;
             }
         },
         {
@@ -698,6 +700,7 @@ const TOWER_UPGRADES = {
                 tower.damageReinforced = true;
                 addPierce(tower, 1);
                 tower.damage += 2;
+                tower.range += 2;
             }
         },
         {
@@ -721,7 +724,7 @@ const TOWER_UPGRADES = {
             image: '/img/burst.png',
             apply: (tower) => { 
                 tower.projectileCount += 2;
-                scaleFireRate(tower, 0.9, 55);
+                scaleFireRate(tower, 0.9, 55);;
             }
         },
         {
@@ -735,6 +738,7 @@ const TOWER_UPGRADES = {
                 tower.projectileCount += 1;
                 scaleFireRate(tower, 0.75, 50);
                 tightenSpread(tower, 0.7);
+                tower.range += 10;
             }
         }
     ],
@@ -764,8 +768,8 @@ const TOWER_UPGRADES = {
             image: '/img/magic.png',
             apply: (tower) => {
                 tower.damage += 1;
-                tower.spellCastRate = Math.max(1500, Math.round((tower.spellCastRate || 7000) * 0.85));
-                tower.supportCastRate = Math.max(3200, Math.round((tower.supportCastRate || 12000) * 0.75));
+                tower.spellCastRate = Math.max(1700, Math.round((tower.spellCastRate || 7000) * 0.9));
+                tower.supportCastRate = Math.max(3600, Math.round((tower.supportCastRate || 12000) * 0.8));
                 tower.spellLength = (tower.spellLength || 2000) + 1500;
                 tower.fog = true;
                 tower.doubleStrike = true;
@@ -810,6 +814,9 @@ class Tower {
         this.spreadRadians = typeof def.spreadDegrees === 'number'
             ? (def.spreadDegrees * Math.PI) / 180
             : (def.spreadRadians || 0);
+        this.burstShotDelay = def.burstShotDelay || 120;
+        this.burstShotsRemaining = 0;
+        this.burstTotalShots = 0;
 
         this.projectileLife = def.projectileLife || 0;
         this.damageReinforced = !!def.damageReinforced;
@@ -937,6 +944,11 @@ class Tower {
                 this.target = enemy;
             }
         });
+
+        if (this.type === 'sentinel' && !this.target) {
+            this.burstShotsRemaining = 0;
+            this.burstTotalShots = 0;
+        }
     }
 
     /**
@@ -947,7 +959,13 @@ class Tower {
      */
     shoot(bullets) {
         if (!this.target || this.fireCooldown > 0) return false;
-        this.fireCooldown = this.fireRate * (this.attackSpeedMultiplier || 1);
+        const isSentinelBurst = this.type === 'sentinel';
+        if (!isSentinelBurst) {
+            this.fireCooldown = this.fireRate * (this.attackSpeedMultiplier || 1);
+        } else if (this.burstShotsRemaining <= 0) {
+            this.burstShotsRemaining = Math.max(1, this.projectileCount || 1);
+            this.burstTotalShots = this.burstShotsRemaining;
+        }
 
         const cx = this.x + this.width / 2;
         const cy = this.y + this.height / 2;
@@ -960,17 +978,26 @@ class Tower {
         if (len === 0) return false;
 
         const baseAngle = Math.atan2(dy, dx);
-        const count = this.projectileCount;
+        const count = isSentinelBurst ? 1 : this.projectileCount;
         const hasConeSpread = count > 1 && this.spreadRadians > 0 && this.spreadRadians < (Math.PI * 2);
         const angleStep = count > 1
             ? (hasConeSpread ? this.spreadRadians / Math.max(1, count - 1) : (Math.PI * 2) / count)
             : 0;
         const startAngle = hasConeSpread ? (baseAngle - this.spreadRadians / 2) : 0;
+        let sentinelShotAngle = baseAngle;
+        if (isSentinelBurst && this.burstTotalShots > 1 && this.spreadRadians > 0 && this.spreadRadians < (Math.PI * 2)) {
+            const burstStep = this.spreadRadians / Math.max(1, this.burstTotalShots - 1);
+            const burstStart = baseAngle - this.spreadRadians / 2;
+            const burstIndex = this.burstTotalShots - this.burstShotsRemaining;
+            sentinelShotAngle = burstStart + (burstStep * burstIndex);
+        }
 
         for (let i = 0; i < count; i++) {
-            const angle = count > 1
+            const angle = isSentinelBurst
+                ? sentinelShotAngle
+                : (count > 1
                 ? (hasConeSpread ? (startAngle + i * angleStep) : (i * angleStep))
-                : baseAngle;
+                : baseAngle);
 
             const bullet = new Bullet(cx, cy, true);
             bullet.width = 6;
@@ -995,9 +1022,14 @@ class Tower {
             const isRailLaser = this.type === 'railgun' && (this.railBeamMode === 'laser' || this.railBeamMode === 'miku');
             if (isRailLaser) {
                 const isMikuBeam = this.railBeamMode === 'miku';
-                const beamThickness = isMikuBeam ? 11 : 6;
-                const beamLength = isMikuBeam ? 200 : 120;
+                const beamThickness = isMikuBeam ? 18 : 6;
+                const beamLength = isMikuBeam ? 0 : 120;
                 const beamLife = isMikuBeam ? 650 : 260;
+
+                bullet.isRailBeam = true;
+                bullet.isMikuBeam = isMikuBeam;
+                bullet.beamThickness = beamThickness;
+                bullet.beamLength = beamLength;
 
                 bullet.width = beamThickness;
                 bullet.height = beamThickness;
@@ -1009,8 +1041,22 @@ class Tower {
                     const velocityLength = Math.sqrt(this.vx * this.vx + this.vy * this.vy) || 1;
                     const dirX = this.vx / velocityLength;
                     const dirY = this.vy / velocityLength;
-                    const tailX = centerX - dirX * beamLength;
-                    const tailY = centerY - dirY * beamLength;
+
+                    let tailX = centerX - dirX * beamLength;
+                    let tailY = centerY - dirY * beamLength;
+                    let headX = centerX;
+                    let headY = centerY;
+
+                    if (isMikuBeam) {
+                        const source = this.sourceTower;
+                        const startX = source ? (source.x + source.width / 2) : centerX;
+                        const startY = source ? (source.y + source.height / 2) : centerY;
+                        const fullScreenLength = Math.hypot(ctx.canvas.width, ctx.canvas.height) + 180;
+                        tailX = startX;
+                        tailY = startY;
+                        headX = startX + dirX * fullScreenLength;
+                        headY = startY + dirY * fullScreenLength;
+                    }
 
                     ctx.save();
                     ctx.lineCap = 'round';
@@ -1021,14 +1067,14 @@ class Tower {
                     ctx.lineWidth = beamThickness * 1.9;
                     ctx.beginPath();
                     ctx.moveTo(tailX, tailY);
-                    ctx.lineTo(centerX, centerY);
+                    ctx.lineTo(headX, headY);
                     ctx.stroke();
 
                     ctx.strokeStyle = isMikuBeam ? '#7cf7ff' : '#a8d7ff';
                     ctx.lineWidth = beamThickness;
                     ctx.beginPath();
                     ctx.moveTo(tailX, tailY);
-                    ctx.lineTo(centerX, centerY);
+                    ctx.lineTo(headX, headY);
                     ctx.stroke();
 
                     ctx.restore();
@@ -1111,6 +1157,17 @@ class Tower {
             }
 
             bullets.push(bullet);
+        }
+
+        if (isSentinelBurst) {
+            this.burstShotsRemaining = Math.max(0, this.burstShotsRemaining - 1);
+            const burstDelay = Math.max(40, this.burstShotDelay || 120);
+            if (this.burstShotsRemaining > 0) {
+                this.fireCooldown = burstDelay * (this.attackSpeedMultiplier || 1);
+            } else {
+                this.fireCooldown = this.fireRate * (this.attackSpeedMultiplier || 1);
+                this.burstTotalShots = 0;
+            }
         }
 
         return true;
