@@ -773,6 +773,12 @@ label.checkbox {
     color: #fff;
 }
 
+.toggle-btn:disabled {
+    background: rgba(255, 255, 255, 0.03);
+    color: rgba(255, 255, 255, 0.35);
+    cursor: not-allowed;
+}
+
 /* ── Sliding Store Dock ──*/
 #storeDock {
     --store-toggle-width: 48px;

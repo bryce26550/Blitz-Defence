@@ -309,7 +309,7 @@ app.post('/adminStartGame', isAuthenticated, isAdmin, (req, res) => {
     });
 });
 
-// Start game session endpoint
+// Start game session
 app.post('/startGameSession', isAuthenticated, (req, res) => {
     if (!req.session.hasPaid) {
         return res.json({ ok: false, error: 'Payment required' });
@@ -394,10 +394,10 @@ function handleWaveComplete(gameSession, data, res) {
     });
 }
 
-// Add periodic cleanup of stale sessions
+// Delete inactive games if away for 5 minutes
 setInterval(() => {
     const now = Date.now();
-    const maxInactiveTime = 5 * 60 * 1000; // 5 minutes
+    const maxInactiveTime = 5 * 60 * 1000;
 
     for (const [sessionId, gameSession] of gameSessions.entries()) {
         if (now - gameSession.lastActivity > maxInactiveTime) {
@@ -405,9 +405,9 @@ setInterval(() => {
             gameSessions.delete(sessionId);
         }
     }
-}, 60000); // Check every minute
+}, 60000); // Check 
 
-// Add rate limiting
+// rate limiting
 const rateLimits = new Map(); // sessionId -> { requests: number, resetTime: timestamp }
 
 function checkRateLimit(sessionId) {
