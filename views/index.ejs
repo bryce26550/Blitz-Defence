@@ -10,11 +10,15 @@
 
 <body>
     <!-- Settings button -->
-    <button id="settingsCornerBtn" class="settings-corner-btn" onclick="openSettings()" title="Settings">&#9881;</button>
+    <button id="settingsCornerBtn" class="settings-corner-btn" onclick="openSettings()"
+        title="Settings">&#9881;</button>
 
     <!-- Audio elements -->
     <audio id="backgroundMusic" loop preload="auto">
         <source src="music/Background.m4a" type="audio/mp4">
+    </audio>
+    <audio id="daveGrohl" loop preload="auto">
+        <source src="music/Dave Grohl..mp3" type="audio/mp3">
     </audio>
     <audio id="enemyHit" loop preload="auto">
         <source src="sfx/enemyHit.wav" type="audio/wav">
@@ -114,7 +118,8 @@
                 <div id="towerShop">
                     <div class="tower-shop-header">
                         <span class="tower-shop-label">Tower Shop</span>
-                        <span id="towerShopHint" class="tower-shop-hint">Select a tower to buy, then click the map to place it.</span>
+                        <span id="towerShopHint" class="tower-shop-hint">Select a tower to buy, then click the map to
+                            place it.</span>
                     </div>
                     <div id="towerShopCards" class="tower-shop-grid"></div>
                 </div>
@@ -128,7 +133,8 @@
                     </div>
                 </div>
             </div>
-            <button id="storeToggleBtn" class="store-toggle-btn" type="button" aria-expanded="false" aria-controls="towerShop towerUpgradePanel">Store</button>
+            <button id="storeToggleBtn" class="store-toggle-btn" type="button" aria-expanded="false"
+                aria-controls="towerShop towerUpgradePanel">Store</button>
         </div>
 
         <!-- Start Menu -->
@@ -166,11 +172,12 @@
                                 <div class="control-list">
                                     <div class="control-item">• Drag towers onto the map to place them</div>
                                     <div class="control-item">• Earn currency by defeating enemies</div>
-                                    <div class="control-item">• Each enemy that reaches your base will depleat your sheild</div>
+                                    <div class="control-item">• Each enemy that reaches your base will depleat your
+                                        sheild</div>
                                     <div class="control-item">• Run out of sheild - GAME OVER!</div>
                                     <div class="control-item">• Upgrade towers to increase power</div>
                                     <div class="control-item">• Survive waves and defeat bosses!</div>
-                                    <button id="mapBtn" class="customize-btn">Change Map</button>
+                                    <button id="mapBtn" class="customize-btn">Select Map</button>
                                 </div>
                             </div>
                         </div>
@@ -202,8 +209,8 @@
                 <h1 class="level-up-title">LEVEL UP!</h1>
                 <p class="level-up-subtitle">Choose an upgrade:</p>
                 <div id="upgradeOptions" class="upgrade-grid"> -->
-                    <!-- Upgrade options populated by JavaScript -->
-                <!-- </div>
+        <!-- Upgrade options populated by JavaScript -->
+        <!-- </div>
                 <p class="level-up-hint">Click an option or press 1, 2, or 3</p>
             </div>
         </div> -->
@@ -230,7 +237,8 @@
                         <span class="settings-desc">Choose when new waves begin</span>
                     </div>
                     <div class="toggle-group">
-                        <button class="toggle-btn" id="waveManualBtn" onclick="setSetting('waveAuto', false)">Manual</button>
+                        <button class="toggle-btn" id="waveManualBtn"
+                            onclick="setSetting('waveAuto', false)">Manual</button>
                         <button class="toggle-btn" id="waveAutoBtn" onclick="setSetting('waveAuto', true)">Auto</button>
                     </div>
                 </div>
@@ -272,7 +280,36 @@
             </div>
         </div>
 
+        <!-- Map Selection Menu -->
+        <div id="mapSelectionMenu" class="menu-overlay hidden">
+            <div class="menu-panel map-selection-panel">
+                <h2>Select Map</h2>
+
+                <!-- Map Grid Container -->
+                <div id="mapGrid" class="map-grid">
+                    <!-- Maps will be populated by JavaScript -->
+                </div>
+
+                <!-- Navigation Controls -->
+                <div class="map-navigation">
+                    <button id="prevPageBtn" class="nav-btn">◀ Previous</button>
+                    <span id="pageIndicator" class="page-indicator">Page 1 of 2</span>
+                    <button id="nextPageBtn" class="nav-btn">Next ▶</button>
+                </div>
+
+                <button id="cancelMapSelection" class="secondary-btn">Cancel</button>
+            </div>
+        </div>
+
     </div>
+
+    <!-- Final Boss Health Bar -->
+    <div id="bossHealthBar" class="boss-health-bar">
+        <div id="bossName" class="boss-name">Mr. Smith - The Final Boss</div>
+        <div id="bossHealthFill" class="boss-health-fill"></div>
+        <div id="bossHealthText" class="boss-health-text">1000 / 1000</div>
+    </div>
+
 
     <!-- Load JavaScript files in the correct order -->
     <script src="/socket.io/socket.io.js"></script>
@@ -303,7 +340,7 @@
 
         function _applySettingsToGame(s) {
             if (window.game) {
-                window.game.autoStart    = s.waveAuto;
+                window.game.autoStart = s.waveAuto;
                 window.game.showTooltips = s.tooltips;
                 window.game.soundEnabled = s.sound !== false;
                 window.game.applySoundSetting();
@@ -319,7 +356,7 @@
 
         function _playToggleSound(value) {
             const sfx = document.getElementById(value ? 'settingOn' : 'settingOff');
-            if (sfx) { sfx.currentTime = 0; sfx.play().catch(() => {}); }
+            if (sfx) { sfx.currentTime = 0; sfx.play().catch(() => { }); }
         }
 
         function setSetting(key, value) {
@@ -353,7 +390,7 @@
             _syncToggleUI(s);
 
             // Re-apply each time game starts (startBtn, restartBtn)
-            ['startBtn','restartBtn','pauseRestartBtn','victoryRestartBtn'].forEach(id => {
+            ['startBtn', 'restartBtn', 'pauseRestartBtn', 'victoryRestartBtn'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.addEventListener('click', () => {
                     setTimeout(() => _applySettingsToGame(_loadSettings()), 50);

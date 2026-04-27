@@ -17,7 +17,7 @@ const TOWER_TYPES = {
     blaster: {
         name: 'Blaster',
         cost: 250,
-        damage: 2,
+        damage: 1,
         range: 50,
         fireRate: 1250,
         color: '#FF9800',
@@ -155,6 +155,19 @@ const TOWER_TYPES = {
         height: 30,
         color: '#f7d36b',
         image: '/img/sillyBilly.png'
+    },
+    grohl: {
+        name: 'Grohl',
+        cost: 1,
+        damage: 0,
+        range: 0,
+        fireRate: 0,
+        color: '#9C27B0',
+        projectileCount: 1,
+        projectileSpeed: 1,
+        width: 30,
+        height: 30,
+        image: '/img/grohl.png'
     }
 };
 
@@ -247,7 +260,7 @@ const TOWER_UPGRADES = {
                 tower.damage += 3;
                 tower.range += 20;
                 scaleFireRate(tower, 0.6, 70);
-                tower.stunChance = Math.min(1, (tower.stunChance || 0) + 0.15);
+                tower.stunChance = Math.min(1, (tower.stunChance || 0) + 0.05);
             }
         }
     ],
@@ -358,12 +371,12 @@ const TOWER_UPGRADES = {
             id: 'sturdyFrame',
             tier: 3,
             name: 'Sturdy Frame',
-            description: 'A more robust frame that can handle increased stress. Increases damage and lifespan',
+            description: 'A more robust frame that can handle increased stress. Increases damage and bullet count',
             cost: 1200,
             image: '/img/megaman.png',
             apply: (tower) => {
                 tower.damage += 1;
-                tower.projectileLife = (tower.projectileLife || 1) + 1;
+                tower.projectileCount += 2;
                 tower.range += 8;
             }
         },
@@ -391,19 +404,20 @@ const TOWER_UPGRADES = {
             apply: (tower) => {
                 tower.damage += 3;
                 addPierce(tower, 2);
-                scaleFireRate(tower, 1.15, 100);
+                scaleFireRate(tower, 0.7, 100);
             }
         },
         {
             id: 'plankton',
             tier: 6,
             name: 'Maximum Overdrive',
-            description: 'Im shifting into MAXIMUM OVERDRIVE! Increased fire rate and range.',
+            description: 'Im shifting into MAXIMUM OVERDRIVE! Increased fire rate, range, and projectile count.',
             cost: 10000,
             image: '/img/planktonOverdrive.png',
             apply: (tower) => {
                 scaleFireRate(tower, 0.6, 70);
                 tower.range += 20;
+                tower.projectileCount *= 2;
             }
         }
     ],
@@ -773,6 +787,21 @@ const TOWER_UPGRADES = {
                 tower.spellLength = (tower.spellLength || 2000) + 1500;
                 tower.fog = true;
                 tower.doubleStrike = true;
+            }
+        }
+    ],
+    grohl: [
+        {
+            id: 'sacrifice',
+            tier: 1,
+            name: 'Power',
+            description: 'Is it worth the cost?',
+            cost: 'Everything you have and more.' || 9999999999,
+            image: '/img/grohl.png',
+            apply: (tower) => {
+                tower.damage = 100;
+                tower.range = 100;
+                tower.fireRate = 1000;
             }
         }
     ]

@@ -6,12 +6,12 @@ class MapManager {
 
         // Load Eye of Ender background image
         this.eyeOfEnderImage = new Image();
-        this.eyeOfEnderImage.src = 'img/Eye.jpg';
+        this.eyeOfEnderImage.src = 'img/mapIMG/Eye.jpg';
         this.eyeImageLoaded = false;
 
         // Load Vortex background image
         this.vortexImage = new Image();
-        this.vortexImage.src = 'img/Vortex1.jpg'; // Fixed: was missing .src
+        this.vortexImage.src = 'img/mapIMG/Vortex.jpg'; // Fixed: was missing .src
         this.vortexImageLoaded = false;
 
         this.eyeOfEnderImage.onload = () => {

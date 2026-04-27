@@ -167,7 +167,7 @@ class Game {
         this.level = 1;
         this.sheild = 250;
         this.maxSheild = 250;
-        this.money = 9999999;
+        this.money = 99999;
         this.expToNextLevel = 100;
         this.showLevelUp = false;
 
@@ -230,13 +230,7 @@ class Game {
         this.spawnTimer = 0;
         this.spawnDelay = 250; // 0.25 seconds in milliseconds
         this.waveStartAllowed = false; // Flag to control wave start button availability
-
-        // Load persisted settings
-        const _saved = (() => { try { return JSON.parse(localStorage.getItem('blitzDefenceSettings') || '{}'); } catch (e) { return {}; } })();
-        this.autoStart = _saved.waveAuto === true;  // default: manual
-        this.showTooltips = _saved.tooltips !== false;  // default: on
-        this.soundEnabled = _saved.sound !== false;  // default: on
-        this.applySoundSetting();
+        this.autoStart = false; // Disable auto-starting next wave for manual control
 
         // Multi-track spawning modes
         this.multiTrackMode = 'perWave'; // 'perEnemy', 'perWave', or 'single'
@@ -292,6 +286,98 @@ class Game {
         this.updatePlayerPreview();
     }
 
+    showMapSelectionMenu() {
+        this.hideAllMenus();
+        document.getElementById('mapSelectionMenu').classList.remove('hidden');
+        this.populateMapGrid();
+        this.currentMapPage = 0;
+        this.updateMapNavigation();
+    }
+
+    populateMapGrid() {
+        const mapGrid = document.getElementById('mapGrid');
+        if (!mapGrid) return;
+
+        // Define your maps with their corresponding image files
+        this.availableMaps = [
+            { index: 0, name: '3 Ways', image: '/img/mapIMG/3Ways.png' },
+            { index: 1, name: 'Spiral', image: '/img/mapIMG/Spiral.png' },
+            { index: 2, name: '4Corners', image: '/img/mapIMG/4Corners.png' },
+            { index: 3, name: 'Mirrored', image: '/img/mapIMG/Mirrored.png' },
+            { index: 4, name: 'Cricut', image: '/img/mapIMG/Circut.png' },
+            { index: 5, name: 'Eye Spy', image: '/img/mapIMG/EyeSpye.png' },
+            { index: 6, name: '???', image: '/img/mapIMG/random.png' },
+            { index: 7, name: 'Vortex', image: '/img/mapIMG/VortexMap.png' },
+            { index: 8, name: 'Empty Space', image: '/img/mapIMG/EmptySpace.png' }
+        ];
+
+        this.mapsPerPage = 8;
+        this.totalPages = Math.ceil(this.availableMaps.length / this.mapsPerPage);
+        this.currentMapPage = 0;
+
+        this.renderMapPage();
+    }
+
+    renderMapPage() {
+        const mapGrid = document.getElementById('mapGrid');
+        mapGrid.innerHTML = '';
+
+        const startIndex = this.currentMapPage * this.mapsPerPage;
+        const endIndex = Math.min(startIndex + this.mapsPerPage, this.availableMaps.length);
+
+        for (let i = startIndex; i < endIndex; i++) {
+            const map = this.availableMaps[i];
+
+            const mapCard = document.createElement('div');
+            mapCard.className = 'map-card';
+            if (map.index === this.mapManager.currentMapIndex) {
+                mapCard.classList.add('selected');
+            }
+
+            // Updated structure: name first, then image
+            mapCard.innerHTML = `
+            <div class="map-name">${map.name}</div>
+            <img src="${map.image}" alt="${map.name}" class="map-preview-img" 
+                 onerror="this.style.background='#333'; this.style.border='1px solid #555';">
+        `;
+
+            mapCard.addEventListener('click', () => {
+                this.selectMap(map.index);
+            });
+
+            mapGrid.appendChild(mapCard);
+        }
+    }
+
+
+    selectMap(mapIndex) {
+        console.log(`Selected map: ${mapIndex}`);
+
+        // Update the map manager
+        this.mapManager.currentMapIndex = mapIndex;
+        this.mapManager.currentMap = this.mapManager.maps[mapIndex];
+        this.updateMultiTrackMode();
+
+        // Hide the selection menu and return to start menu
+        document.getElementById('mapSelectionMenu').classList.add('hidden');
+        this.showStartMenu();
+
+        // The canvas should automatically update because the start menu shows the map
+    }
+
+    updateMapNavigation() {
+        const prevBtn = document.getElementById('prevPageBtn');
+        const nextBtn = document.getElementById('nextPageBtn');
+        const pageIndicator = document.getElementById('pageIndicator');
+
+        if (prevBtn) prevBtn.disabled = this.currentMapPage === 0;
+        if (nextBtn) nextBtn.disabled = this.currentMapPage >= this.totalPages - 1;
+        if (pageIndicator) {
+            pageIndicator.textContent = `Page ${this.currentMapPage + 1} of ${this.totalPages}`;
+        }
+    }
+
+
     showPauseMenu() {
         this.hideAllMenus();
         document.getElementById('pauseMenu').classList.remove('hidden');
@@ -304,7 +390,7 @@ class Game {
     // }
 
     hideAllMenus() {
-        const menuIds = ['startMenu', 'pauseMenu', 'levelUpMenu', 'gameOver', 'victoryMenu'];
+        const menuIds = ['startMenu', 'pauseMenu', 'levelUpMenu', 'gameOver', 'victoryMenu', 'mapSelectionMenu'];
         menuIds.forEach(id => {
             const element = document.getElementById(id);
             if (element) {
@@ -314,6 +400,7 @@ class Game {
             }
         });
     }
+
 
     startBackgroundMusic() {
         if (this.backgroundMusic) {
@@ -850,7 +937,36 @@ class Game {
             });
         }
 
+        // Map selection navigation
+        const prevPageBtn = document.getElementById('prevPageBtn');
+        if (prevPageBtn) {
+            prevPageBtn.addEventListener('click', () => {
+                if (this.currentMapPage > 0) {
+                    this.currentMapPage--;
+                    this.renderMapPage();
+                    this.updateMapNavigation();
+                }
+            });
+        }
 
+        const nextPageBtn = document.getElementById('nextPageBtn');
+        if (nextPageBtn) {
+            nextPageBtn.addEventListener('click', () => {
+                if (this.currentMapPage < this.totalPages - 1) {
+                    this.currentMapPage++;
+                    this.renderMapPage();
+                    this.updateMapNavigation();
+                }
+            });
+        }
+
+        const cancelMapSelection = document.getElementById('cancelMapSelection');
+        if (cancelMapSelection) {
+            cancelMapSelection.addEventListener('click', () => {
+                document.getElementById('mapSelectionMenu').classList.add('hidden');
+                this.showStartMenu();
+            });
+        }
 
         // Player customization buttons
         const colorBtn = document.getElementById('colorBtn');
@@ -880,8 +996,7 @@ class Game {
         const mapBtn = document.getElementById('mapBtn');
         if (mapBtn) {
             mapBtn.addEventListener('click', () => {
-                this.mapManager.cycleMap();
-                this.updateMultiTrackMode(); // Update spawning mode based on new map
+                this.showMapSelectionMenu();
             });
         }
 
@@ -1446,7 +1561,6 @@ class Game {
         // Update placed towers (acquire targets & fire)
         const allEnemies = [
             ...this.enemies,
-            ...this.shooters,
             ...this.tanks,
             ...this.sprinters,
             ...this.bosses
@@ -1470,14 +1584,14 @@ class Game {
         });
     }
 
-    findNearestEnemy(x, y, enemies, range = Infinity) {
+    findNearestEnemy(x, y, enemies, range = Infinity, canSeeHidden = false) {
         let nearest = null;
         let nearestDist = range;
 
         for (let i = 0; i < enemies.length; i++) {
             const enemy = enemies[i];
             if (!enemy || enemy.hp <= 0) continue;
-            if (enemy.hidden) continue;
+            if (enemy.hidden && !canSeeHidden) continue;
 
             const ex = enemy.x + (enemy.width || 0) / 2;
             const ey = enemy.y + (enemy.height || 0) / 2;
@@ -1989,6 +2103,11 @@ class Game {
         this.totalEnemiesInWave = this.currentWave.length;
         this.waveComplete = false;
 
+        // Slightly accelerate spawn pacing as waves increase to preserve the
+        // existing curve while increasing pressure.
+        const paceBonus = Math.floor((this.waveNumber - 1) * 3.5);
+        this.spawnDelay = Math.max(120, 260 - paceBonus);
+
         // Reset wave track index for per-wave mode
         if (this.multiTrackMode === 'perWave') {
             const availablePaths = this.mapManager.getAvailablePaths();
@@ -2003,6 +2122,60 @@ class Game {
             ...this.bosses
         ];
         this.runHackerRoundHack(allEnemies);
+    }
+
+    getEnemyBucketForClass(EnemyClass) {
+        if (!EnemyClass) return 'enemies';
+
+        if (EnemyClass === Smith || EnemyClass.name === 'Smith') return 'bosses';
+        if (EnemyClass === Boss || EnemyClass.name === 'Boss') return 'bosses';
+        if (EnemyClass === Tank || EnemyClass.name === 'Tank') return 'tanks';
+
+        if (
+            EnemyClass === Sprinter1 ||
+            EnemyClass === Sprinter2 ||
+            (EnemyClass.name && EnemyClass.name.startsWith('Sprinter'))
+        ) {
+            return 'sprinters';
+        }
+
+        if (
+            EnemyClass === Enemy1 ||
+            EnemyClass === Enemy2 ||
+            EnemyClass === Enemy3 ||
+            (EnemyClass.name && EnemyClass.name.startsWith('Enemy'))
+        ) {
+            return 'enemies';
+        }
+
+        return 'enemies';
+    }
+
+    getEnemyBucketForClass(EnemyClass) {
+        if (!EnemyClass) return 'enemies';
+
+        if (EnemyClass === Smith || EnemyClass.name === 'Smith') return 'bosses';
+        if (EnemyClass === Boss || EnemyClass.name === 'Boss') return 'bosses';
+        if (EnemyClass === Tank || EnemyClass.name === 'Tank') return 'tanks';
+
+        if (
+            EnemyClass === Sprinter1 ||
+            EnemyClass === Sprinter2 ||
+            (EnemyClass.name && EnemyClass.name.startsWith('Sprinter'))
+        ) {
+            return 'sprinters';
+        }
+
+        if (
+            EnemyClass === Enemy1 ||
+            EnemyClass === Enemy2 ||
+            EnemyClass === Enemy3 ||
+            (EnemyClass.name && EnemyClass.name.startsWith('Enemy'))
+        ) {
+            return 'enemies';
+        }
+
+        return 'enemies';
     }
 
     spawnNextEnemy() {
@@ -2042,18 +2215,14 @@ class Game {
 
         enemy.setPath(pathWaypoints);
 
-        // Add to appropriate array
-        if (EnemyClass === Enemy) {
-            this.enemies.push(enemy);
-        } else if (EnemyClass === Shooter) {
-            this.shooters.push(enemy);
-        } else if (EnemyClass === Tank) {
-            this.tanks.push(enemy);
-        } else if (EnemyClass === Sprinter) {
-            this.sprinters.push(enemy);
-        } else if (EnemyClass === Boss) {
-            this.sprinters.push(enemy);
+        // Don't apply enhancements to Smith - he's already perfect
+        if (EnemyClass.name !== 'Smith') {
+            applyEnemyEnhancements(enemy, this.waveNumber);
         }
+
+        // Add to appropriate array
+        const bucket = this.getEnemyBucketForClass(EnemyClass);
+        this[bucket].push(enemy);
 
         this.enemiesSpawned++;
         this.enemiesAlive++;
@@ -2076,15 +2245,15 @@ class Game {
 
     clearAllEnemies() {
         // Create explosions for dramatic effect
-        [...this.enemies, ...this.shooters, ...this.tanks, ...this.sprinters].forEach(enemy => {
+        [...this.enemies, ...this.tanks, ...this.sprinters, ...this.bosses].forEach(enemy => {
             this.createExplosion(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2);
         });
 
         // Actually clear all enemies and bullets
         this.enemies = [];
-        this.shooters = [];
         this.tanks = [];
         this.sprinters = [];
+        this.bosses = [];
         this.friendlySummons = [];
         this.bullets = [];
     }
@@ -2096,7 +2265,7 @@ class Game {
         }
 
         // Count total living enemies
-        this.enemiesAlive = this.enemies.length + this.shooters.length + this.tanks.length + this.sprinters.length + this.bosses.length;
+        this.enemiesAlive = this.enemies.length + this.tanks.length + this.sprinters.length + this.bosses.length;
 
         // Check if wave is complete (all enemies spawned and defeated)
         if (this.enemiesSpawned >= this.totalEnemiesInWave && this.enemiesAlive === 0) {
@@ -2121,6 +2290,13 @@ class Game {
             }
 
             const nextWave = result.nextWave;
+
+            // Special case: If we just completed wave 41 (Smith defeated), trigger victory
+            if (this.waveNumber === 41) {
+                console.log('Smith defeated! Victory achieved!');
+                this.victory();
+                return;
+            }
 
             if (this.waveNumber >= this.totalWaves) {
                 this.victory();
@@ -2368,7 +2544,6 @@ class Game {
                 if (bullet.target) {
                     // Check if target still exists in the game
                     const targetStillExists = this.enemies.includes(bullet.target) ||
-                        this.shooters.includes(bullet.target) ||
                         this.tanks.includes(bullet.target) ||
                         this.sprinters.includes(bullet.target) ||
                         this.bosses.includes(bullet.target);
@@ -2823,9 +2998,9 @@ class Game {
                     if (boss.hp <= 0) {
                         this.createExplosion(boss.x, boss.y);
                         this.money += boss.worth;
-                        this.enemies.splice(j, 1);
+                        this.bosses.splice(j, 1);
 
-                        this.addExp(5);
+                        this.addExp(150);
                         if (this.player.lifeSteal && this.player.health < this.player.maxHealth) {
                             this.player.health++;
                         }
@@ -2843,12 +3018,52 @@ class Game {
         };
     }
 
+    // Add this after your existing methods in the Game class
+
+    updateBossHealthBar() {
+        const healthBar = document.getElementById('bossHealthBar');
+        const healthFill = document.getElementById('bossHealthFill');
+        const healthText = document.getElementById('bossHealthText');
+
+        // Find Smith boss
+        const smith = this.bosses.find(boss => boss.constructor.name === 'Smith');
+
+        if (smith && smith.isFinalBoss) {
+            // Show health bar
+            healthBar.style.display = 'block';
+
+            // Update health percentage
+            const healthPercent = (smith.hp / smith.maxHp) * 100;
+            healthFill.style.width = healthPercent + '%';
+
+            // Update text
+            healthText.textContent = `${smith.hp} / ${smith.maxHp}`;
+
+            // Change color based on health
+            if (healthPercent > 66) {
+                healthFill.style.background = 'linear-gradient(90deg, #ff4444, #ff0000, #cc0000)';
+            } else if (healthPercent > 33) {
+                healthFill.style.background = 'linear-gradient(90deg, #ffaa00, #ff6600, #ff4400)';
+            } else {
+                healthFill.style.background = 'linear-gradient(90deg, #ff0000, #aa0000, #660000)';
+            }
+        } else {
+            // Hide health bar when no final boss
+            healthBar.style.display = 'none';
+        }
+    }
+
+    hideBossHealthBar() {
+        const healthBar = document.getElementById('bossHealthBar');
+        if (healthBar) {
+            healthBar.style.display = 'none';
+        }
+    }
+
+
     removeEnemyFromArrays(enemy) {
         let index = this.enemies.indexOf(enemy);
         if (index > -1) this.enemies.splice(index, 1);
-
-        index = this.shooters.indexOf(enemy);
-        if (index > -1) this.shooters.splice(index, 1);
 
         index = this.tanks.indexOf(enemy);
         if (index > -1) this.tanks.splice(index, 1);
@@ -2864,8 +3079,6 @@ class Game {
         // Remove all minions
         this.enemies = this.enemies.filter(enemy => { !enemy.minion });
         this.createExplosion(this.enemies.x, this.enemies.y);
-        this.shooters = this.shooters.filter(shooter => !shooter.minion);
-        this.createExplosion(this.shooters.x, this.shooters.y);
         this.tanks = this.tanks.filter(tank => !tank.minion);
         this.createExplosion(this.tanks.x, this.tanks.y);
         this.sprinters = this.sprinters.filter(sprinter => !sprinter.minion);
@@ -2883,6 +3096,7 @@ class Game {
 
         if (this.sheild <= 0) {
             this.gameOver();
+            return;
         }
     }
 
@@ -2999,12 +3213,14 @@ class Game {
 
     async gameOver() {
         this.gameRunning = false;
+        this.hideBossHealthBar(); // Hide boss health bar
         this.playSound('playerDefeat')
         document.getElementById('gameOver').classList.remove('hidden');
     }
 
     async victory() {
         this.gameRunning = false;
+        this.hideBossHealthBar(); // Hide boss health bar
         this.playSound('bossDefeat')
         document.getElementById('victoryMenu').classList.remove('hidden');
     }
@@ -3017,6 +3233,9 @@ class Game {
         const savedBodyShapeIndex = this.player.bodyShapeIndex;
         const savedInnerShapeIndex = this.player.innerShapeIndex;
         const savedShapeIndex = this.player.shapeIndex;
+
+        // Hide boss health bar
+        this.hideBossHealthBar();
 
         // hasPaid = false;
         this.bullets = [];
@@ -3097,6 +3316,11 @@ class Game {
         this.mapManager.renderMapName(this.ctx);
         this.renderSpellEffects(this.ctx);
 
+        if (this.started && this.gameRunning) {
+            this.updateGameUI();
+            this.updateBossHealthBar(); // Add this line
+        }
+
         // Render placed towers (before enemies so they appear beneath)
         this.placedTowers.forEach(tower => tower.render(this.ctx));
 
@@ -3110,20 +3334,12 @@ class Game {
 
         // Render enemies first
         this.enemies.forEach(enemy => enemy.render(this.ctx));
-        this.shooters.forEach(shooter => shooter.render(this.ctx));
         this.tanks.forEach(tank => tank.render(this.ctx));
         this.sprinters.forEach(sprinter => sprinter.render(this.ctx));
         this.friendlySummons.forEach(summon => summon.render(this.ctx));
 
         // Render bosses (without walls)
         this.bosses.forEach(boss => boss.render(this.ctx));
-
-        // Render boss walls (before bullets so bullets appear on top)
-        this.bosses.forEach(boss => {
-            if (boss.renderWalls) {  // Check if this boss type has walls
-                boss.renderWalls(this.ctx);
-            }
-        });
 
         // Render bullets (after walls)
         this.bullets.forEach(bullet => bullet.render(this.ctx));
