@@ -20,6 +20,19 @@ const db = new sqlite3.Database('./db/database.db', (err) => {
     }
 });
 
+db.run(`CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    paid INTEGER NOT NULL DEFAULT 0
+    )`, (err) => {
+    if (err) {
+        console.log('Error creating users table:', err);
+    } else {
+        console.log('Users table ready');
+     }
+}
+)
+
 db.run(`CREATE TABLE IF NOT EXISTS game_settings (
     id INTEGER PRIMARY KEY,
     setting_name TEXT UNIQUE,
@@ -187,8 +200,8 @@ app.post('/saveCustomization', isAuthenticated, (req, res) => {
 
     db.run(`INSERT OR REPLACE INTO player_customization 
         (user_id, username, color_index, body_shape_index, inner_shape_index, updated_at)
-        VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`, 
-        [userId, username, color_index, body_shape_index, inner_shape_index], 
+        VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+        [userId, username, color_index, body_shape_index, inner_shape_index],
         function (err) {
             if (err) {
                 console.error('Error saving customization:', err);
@@ -296,7 +309,7 @@ app.post('/adminStartGame', isAuthenticated, isAdmin, (req, res) => {
     });
 });
 
-// Start game session endpoint
+// Start game session
 app.post('/startGameSession', isAuthenticated, (req, res) => {
     if (!req.session.hasPaid) {
         return res.json({ ok: false, error: 'Payment required' });
@@ -381,10 +394,10 @@ function handleWaveComplete(gameSession, data, res) {
     });
 }
 
-// Add periodic cleanup of stale sessions
+// Delete inactive games if away for 5 minutes
 setInterval(() => {
     const now = Date.now();
-    const maxInactiveTime = 5 * 60 * 1000; // 5 minutes
+    const maxInactiveTime = 5 * 60 * 1000;
 
     for (const [sessionId, gameSession] of gameSessions.entries()) {
         if (now - gameSession.lastActivity > maxInactiveTime) {
@@ -392,9 +405,9 @@ setInterval(() => {
             gameSessions.delete(sessionId);
         }
     }
-}, 60000); // Check every minute
+}, 60000); // Check 
 
-// Add rate limiting
+// rate limiting
 const rateLimits = new Map(); // sessionId -> { requests: number, resetTime: timestamp }
 
 function checkRateLimit(sessionId) {

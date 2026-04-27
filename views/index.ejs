@@ -49,11 +49,44 @@
     <audio id="plankton" preload="auto">
         <source src="sfx/plankton.mp3" type="audio/mpeg">
     </audio>
+    <audio id="mikuBeam" preload="auto">
+        <source src="sfx/mikubeam.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="scaryDiscord" preload="auto">
+        <source src="sfx/scaryDiscord.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="flintChicken" preload="auto">
+        <source src="sfx/flintChicken.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="getOffFloor" preload="auto">
+        <source src="sfx/get%20off%20the%20floor.wav" type="audio/wav">
+    </audio>
     <audio id="settingOn" preload="auto">
         <source src="sfx/soundon.mp3" type="audio/mpeg">
     </audio>
     <audio id="settingOff" preload="auto">
         <source src="sfx/lightswitch.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="wizardFireball" preload="auto">
+        <source src="sfx/fireball.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="wizardIceStorm" preload="auto">
+        <source src="sfx/ice.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="wizardArcaneSurge" preload="auto">
+        <source src="sfx/spawn.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="wizardEarthquake" preload="auto">
+        <source src="sfx/groundBreak.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="wizardFog" preload="auto">
+        <source src="sfx/stinky.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="wizardDoubleStrike" preload="auto">
+        <source src="sfx/shadowWizards.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="diceRoll" preload="auto">
+        <source src="sfx/dice_roll.mp3" type="audio/mpeg">
     </audio>
 
     <div id="gameContainer">
@@ -205,11 +238,10 @@
                 <div class="settings-row">
                     <div class="settings-info">
                         <span class="settings-label">Tooltips</span>
-                        <span class="settings-desc">Show hints when hovering over elements and have helpful advice throughout the game</span>
+                        <span class="settings-desc">Coming soon</span>
                     </div>
                     <div class="toggle-group">
-                        <button class="toggle-btn" id="tooltipsOnBtn" onclick="setSetting('tooltips', true)">On</button>
-                        <button class="toggle-btn" id="tooltipsOffBtn" onclick="setSetting('tooltips', false)">Off</button>
+                        <button class="toggle-btn" id="tooltipsSoonBtn" type="button" disabled>Coming Soon</button>
                     </div>
                 </div>
 
@@ -281,8 +313,6 @@
         function _syncToggleUI(s) {
             document.getElementById('waveManualBtn').classList.toggle('active', !s.waveAuto);
             document.getElementById('waveAutoBtn').classList.toggle('active',    s.waveAuto);
-            document.getElementById('tooltipsOnBtn').classList.toggle('active',  s.tooltips !== false);
-            document.getElementById('tooltipsOffBtn').classList.toggle('active', s.tooltips === false);
             document.getElementById('soundOnBtn').classList.toggle('active',     s.sound !== false);
             document.getElementById('soundOffBtn').classList.toggle('active',    s.sound === false);
         }
@@ -293,6 +323,7 @@
         }
 
         function setSetting(key, value) {
+            if (key === 'tooltips') return;
             const s = _loadSettings();
             if (s[key] !== value) _playToggleSound(value);
             s[key] = value;
