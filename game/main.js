@@ -177,6 +177,10 @@ class Game {
         this.gamePaused = false;
         this.gamePausedReason = '';
         this.restartFromPause = false
+        this.smithCutsceneActive = false;
+        this.smithCutsceneResolved = false;
+        this.smithCutsceneEnemy = null;
+        this.smithCutsceneChoice = null;
 
         // Music setup
         this.backgroundMusic = document.getElementById('backgroundMusic');
@@ -389,6 +393,44 @@ class Game {
         document.getElementById('pauseMenu').classList.remove('hidden');
     }
 
+    showSmithCutscene(enemy) {
+        if (this.smithCutsceneResolved || this.smithCutsceneActive) return;
+
+        console.log('🎬 Smith Cutscene Triggered!');
+        this.smithCutsceneActive = true;
+        this.smithCutsceneEnemy = enemy || this.bosses.find(boss => boss && boss.isFinalBoss) || null;
+        this.smithCutsceneChoice = null;
+        this.gameRunning = false;
+        this.hideBossHealthBar();
+        this.hideAllMenus();
+
+        const dialogue = document.getElementById('smithCutsceneDialogue');
+        if (dialogue) {
+            dialogue.textContent = 'Wait. I just wanted you all to do your best and grow as people.';
+            console.log('✓ Dialogue text set');
+        } else {
+            console.error('✗ smithCutsceneDialogue element not found');
+        }
+
+        const cutscene = document.getElementById('smithCutscene');
+        if (cutscene) {
+            cutscene.classList.remove('hidden');
+            console.log('✓ Cutscene overlay shown');
+        } else {
+            console.error('✗ smithCutscene element not found');
+        }
+    }
+
+    hideSmithCutscene() {
+        const cutscene = document.getElementById('smithCutscene');
+        if (cutscene) {
+            cutscene.classList.add('hidden');
+        }
+
+        this.smithCutsceneActive = false;
+        this.smithCutsceneEnemy = null;
+    }
+
     // showLevelUpMenu() {
     //     this.hideAllMenus();
     //     document.getElementById('levelUpMenu').classList.remove('hidden');
@@ -396,7 +438,7 @@ class Game {
     // }
 
     hideAllMenus() {
-        const menuIds = ['startMenu', 'pauseMenu', 'levelUpMenu', 'gameOver', 'victoryMenu', 'mapSelectionMenu'];
+        const menuIds = ['startMenu', 'pauseMenu', 'levelUpMenu', 'gameOver', 'victoryMenu', 'mapSelectionMenu', 'smithCutscene'];
         menuIds.forEach(id => {
             const element = document.getElementById(id);
             if (element) {
@@ -1008,6 +1050,10 @@ class Game {
             bossBtn.addEventListener('click', () => {
                 console.log('Boss button clicked');
                     document.getElementById('victoryMenu').classList.add('hidden');
+                    this.smithCutsceneActive = false;
+                    this.smithCutsceneResolved = false;
+                    this.smithCutsceneEnemy = null;
+                    this.smithCutsceneChoice = null;
                     this.waveNumber = 41;
                     this.loadNewWave();
                     this.started = true;
@@ -1021,6 +1067,20 @@ class Game {
                 console.log('Victory main menu button clicked');
                 document.getElementById('victoryMenu').classList.add('hidden');
                 this.quitToMenu();
+            });
+        }
+
+        const smithSpareBtn = document.getElementById('smithSpareBtn');
+        if (smithSpareBtn) {
+            smithSpareBtn.addEventListener('click', () => {
+                void this.resolveSmithCutscene(true);
+            });
+        }
+
+        const smithRefuseBtn = document.getElementById('smithRefuseBtn');
+        if (smithRefuseBtn) {
+            smithRefuseBtn.addEventListener('click', () => {
+                void this.resolveSmithCutscene(false);
             });
         }
 
@@ -1461,6 +1521,10 @@ class Game {
         this.gameRunning = false;
         this.gamePaused = false;
         this.showLevelUp = false;
+        this.smithCutsceneActive = false;
+        this.smithCutsceneResolved = false;
+        this.smithCutsceneEnemy = null;
+        this.smithCutsceneChoice = null;
         this.placedTowers = [];
         this.selectedTower = null;
         this.selectedPlacedTower = null;
@@ -1474,6 +1538,11 @@ class Game {
 
         // Hide all other menus and show start menu
         this.hideAllMenus();
+        const victoryMessage = document.getElementById('victoryMessage');
+        if (victoryMessage) {
+            victoryMessage.textContent = '';
+            victoryMessage.classList.add('hidden');
+        }
         this.showStartMenu();
 
         console.log('Should be showing start menu now');
@@ -1633,6 +1702,8 @@ class Game {
 
         // Update all entities
         this.updateEntities(deltaTime);
+
+        if (!this.gameRunning || this.gamePaused) return;
 
         // Check collisions
         this.checkCollisions();
@@ -1958,7 +2029,18 @@ class Game {
                 enemy.update(deltaTime);
                 enemy.speed = baseSpeed;
             }
-            return enemy.hp > 0;
+
+            if (enemy.hp > 0) {
+                return true;
+            }
+
+            if (enemy.isFinalBoss && !this.smithCutsceneActive && !this.smithCutsceneResolved) {
+                console.log('🎬 Smith HP dropped to 0, triggering cutscene...');
+                this.showSmithCutscene(enemy);
+                return true;
+            }
+
+            return enemy.isFinalBoss && this.smithCutsceneActive && !this.smithCutsceneResolved;
         });
     }
 
@@ -3340,15 +3422,61 @@ class Game {
     async gameOver() {
         this.gameRunning = false;
         this.hideBossHealthBar(); // Hide boss health bar
+        this.hideSmithCutscene();
         this.playSound('playerDefeat')
         document.getElementById('gameOver').classList.remove('hidden');
     }
 
-    async victory() {
+    async victory(message = '') {
         this.gameRunning = false;
         this.hideBossHealthBar(); // Hide boss health bar
+        this.hideSmithCutscene();
         this.playSound('bossDefeat')
+        const victoryMessage = document.getElementById('victoryMessage');
+        if (victoryMessage) {
+            victoryMessage.textContent = message;
+            victoryMessage.classList.toggle('hidden', !message);
+        }
         document.getElementById('victoryMenu').classList.remove('hidden');
+    }
+
+    async resolveSmithCutscene(spare) {
+        if (!this.smithCutsceneActive || this.smithCutsceneResolved) return;
+
+        this.smithCutsceneResolved = true;
+        this.smithCutsceneChoice = spare ? 'spare' : 'refuse';
+
+        const smith = this.smithCutsceneEnemy;
+        if (smith) {
+            this.removeEnemyFromArrays(smith);
+            this.bosses = this.bosses.filter(boss => boss !== smith);
+        } else {
+            this.bosses = this.bosses.filter(boss => !boss.isFinalBoss);
+        }
+
+        this.hideSmithCutscene();
+
+        const waveCompleteTime = Date.now() - this.waveStartTime;
+        const result = await post('/recordGameEvent', {
+            eventType: 'WAVE_COMPLETE',
+            data: {
+                waveNumber: this.waveNumber,
+                timeTaken: waveCompleteTime,
+            }
+        });
+
+        if (!result.ok) {
+            console.error('Server rejected wave completion:', result.error);
+            alert('Game session ended due to validation error');
+            this.gameOver();
+            return;
+        }
+
+        const victoryMessage = spare
+            ? 'You spared Smith. He finally gets the chance to grow.'
+            : 'You chose not to spare Smith. The final boss is gone.';
+
+        this.victory(victoryMessage);
     }
 
 
@@ -3390,6 +3518,10 @@ class Game {
         this.showLevelUp = false;
         this.gamePaused = false;
         this.gamePausedReason = '';
+        this.smithCutsceneActive = false;
+        this.smithCutsceneResolved = false;
+        this.smithCutsceneEnemy = null;
+        this.smithCutsceneChoice = null;
         this.gameRunning = startImmediately;
         this.started = startImmediately || this.started;
 
@@ -3423,6 +3555,16 @@ class Game {
         this.updatePlayerPreview();
 
         document.getElementById('gameOver').classList.add('hidden');
+        const victoryMenu = document.getElementById('victoryMenu');
+        if (victoryMenu) {
+            victoryMenu.classList.add('hidden');
+        }
+        const victoryMessage = document.getElementById('victoryMessage');
+        if (victoryMessage) {
+            victoryMessage.textContent = '';
+            victoryMessage.classList.add('hidden');
+        }
+        this.hideSmithCutscene();
 
         this.updateStoreDockUI();
         if (startImmediately) {

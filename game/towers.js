@@ -397,7 +397,6 @@ const TOWER_UPGRADES = {
             id: 'overdrive',
             tier: 5,
             name: 'Overdrive',
-            //update fire rate to be faster since its description has been upated to be faster instead of slower
             description: 'Time to take this puppy into overdrive. Increased damage and pierce, and a faster fire rate.',
             cost: 5500,
             image: '/img/megaman.png',
@@ -476,7 +475,7 @@ const TOWER_UPGRADES = {
             tier: 2,
             name: 'Hacker Knowledge',
             description: 'Enhanced abilities allow for deeper system access. Make some more money per hack.',
-            cost: 3975,
+            cost: 4000,
             image: '/img/redditMod.png',
             apply: (tower) => {
                 tower.hackRewardMultiplier = (tower.hackRewardMultiplier || 1) + 0.5;
@@ -498,7 +497,7 @@ const TOWER_UPGRADES = {
             tier: 4,
             name: 'System Override',
             description: 'Time to make the big bucks! Override controls to triple each round-start payout.',
-            cost: 63500,
+            cost: 30000,
             image: '/img/redditMod.png',
             apply: (tower) => {
                 tower.hackRewardMultiplier = (tower.hackRewardMultiplier || 1) * 3;
@@ -509,7 +508,7 @@ const TOWER_UPGRADES = {
             tier: 5,
             name: 'The Merkman',
             description: 'Wait, I know that guy! How did he get here? Merkert will periodically remove specail states from enemies',
-            cost: 50,
+            cost: 65000,
             image: '/img/merkman.png',
             apply: (tower) => {
                 tower.statusCleanseChance = Math.min(1, (tower.statusCleanseChance || 0) + 0.2);
@@ -582,7 +581,7 @@ const TOWER_UPGRADES = {
             tier: 6,
             name: 'Chicken Jockey',
             description: 'Chicken Jockeys! Peck your enemies eyes out. Increased spawn count and speed with less summon speed.',
-            cost: 50,
+            cost: 10000,
             image: '/img/chickenJockey.png',
             apply: (tower) => {
                 tower.summonCount = (tower.summonCount || 1) + 1;
@@ -657,7 +656,7 @@ const TOWER_UPGRADES = {
             tier: 6,
             name: 'Cluster F***',
             description: 'Youre gonna want to get in a vault for this one! Whenever a bomb explodes release a ring of smaller bombs around the area. ',
-            cost: 50,
+            cost: 20000,
             image: '/img/vaultboy.png',
             apply: (tower) => {
                 tower.clusterOnExplosion = true;

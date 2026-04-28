@@ -290,11 +290,27 @@
         <div id="victoryMenu" class="menu-overlay hidden">
             <div class="menu-panel">
                 <h1 class="victory-title">Victory!</h1>
+                <p id="victoryMessage" class="victory-message hidden"></p>
                 <div class="menu-buttons">
                     <!-- <button id="endlessBtn" class="primary-btn">ENDLESS MODE</button> -->
                     <button id="victoryRestartBtn" class="secondary-btn">PLAY AGAIN</button>
                     <button id="victoryMainMenuBtn" class="secondary-btn">MAIN MENU</button>
                     <button id="bossBtn" class="bossBtn">BOSS?</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Smith Cutscene -->
+        <div id="smithCutscene" class="menu-overlay cutscene-overlay hidden">
+            <div class="menu-panel cutscene-panel">
+                <div class="cutscene-label">Final Encounter</div>
+                <div class="dialogue-box">
+                    <div class="dialogue-speaker">Smith</div>
+                    <div id="smithCutsceneDialogue" class="dialogue-text">Wait. I just wanted you all to do your best and grow as people.</div>
+                </div>
+                <div class="menu-buttons cutscene-actions">
+                    <button id="smithSpareBtn" class="primary-btn">Spare him</button>
+                    <button id="smithRefuseBtn" class="secondary-btn">Don't spare him</button>
                 </div>
             </div>
         </div>
