@@ -6,7 +6,7 @@ const TOWER_TYPES = {
         cost: 100,
         damage: 1,
         range: 100,
-        fireRate: 1200,  
+        fireRate: 1200,
         color: '#4CAF50',
         projectileCount: 1,
         projectileSpeed: 1,
@@ -35,7 +35,7 @@ const TOWER_TYPES = {
         range: 1000,
         fireRate: 3000,
         color: '#2196F3',
-        projectileCount: 1, 
+        projectileCount: 1,
         projectileSpeed: 0.8,
         width: 30,
         height: 30,
@@ -102,8 +102,8 @@ const TOWER_TYPES = {
         color: '#00BCD4',
         width: 30,
         height: 30,
-        regenSpeed : 9500,
-        regenAmount : 10,
+        regenSpeed: 9500,
+        regenAmount: 10,
         regenMax: 20,
         image: '/img/gen.png'
     },
@@ -157,12 +157,12 @@ const TOWER_TYPES = {
         image: '/img/sillyBilly.png'
     },
     grohl: {
-        name: 'Grohl',
+        name: 'Dave Grohl',
         cost: 1,
         damage: 0,
         range: 0,
         fireRate: 0,
-        color: '#9C27B0',
+        color: '#ffffffff',
         projectileCount: 1,
         projectileSpeed: 1,
         width: 30,
@@ -736,7 +736,7 @@ const TOWER_UPGRADES = {
             description: 'Fires two more bullets in the burst with faster fire rate.',
             cost: 5000,
             image: '/img/burst.png',
-            apply: (tower) => { 
+            apply: (tower) => {
                 tower.projectileCount += 2;
                 scaleFireRate(tower, 0.9, 55);;
             }
@@ -794,14 +794,20 @@ const TOWER_UPGRADES = {
         {
             id: 'sacrifice',
             tier: 1,
-            name: 'Power',
-            description: 'Is it worth the cost?',
-            cost: 'Everything you have and more.' || 9999999999,
+            name: 'ULTIMATE POWER',
+            description: `Is it worth the cost?`,
+            cost: 'Everything you have and more!',
             image: '/img/grohl.png',
             apply: (tower) => {
                 tower.damage = 100;
-                tower.range = 100;
-                tower.fireRate = 1000;
+                tower.range = 1000000000000000;
+                tower.fireRate = 500;
+                tower.projectileCount = Math.max(1000, tower.projectileCount * 1000);
+                if (!tower.spreadRadians || tower.spreadRadians <= 0) {
+                    tower.spreadRadians = Math.PI / 18;
+                }
+                tower.seeHidden = true;
+                tower.damageReinforced = true;
             }
         }
     ]
@@ -918,13 +924,22 @@ class Tower {
 
         upgrade.apply(this);
         this.appliedUpgradeIds.push(upgrade.id);
-        this.totalSpent += Number.isFinite(upgrade.cost) ? upgrade.cost : 0;
+
+        // 🎸 Special handling for Grohl's "Everything you have and more" upgrade
+        if (this.type === 'grohl' && upgrade.id === 'sacrifice') {
+            // Don't add the string cost to totalSpent
+            this.totalSpent += 0;
+        } else {
+            this.totalSpent += Number.isFinite(upgrade.cost) ? upgrade.cost : 0;
+        }
+
         if (upgrade.image) {
             this.currentUpgradeImage = upgrade.image;
         }
         this.level += 1;
         return upgrade;
     }
+
 
     getSellValue() {
         return Math.floor(this.totalSpent * 0.63);
@@ -1025,8 +1040,8 @@ class Tower {
             const angle = isSentinelBurst
                 ? sentinelShotAngle
                 : (count > 1
-                ? (hasConeSpread ? (startAngle + i * angleStep) : (i * angleStep))
-                : baseAngle);
+                    ? (hasConeSpread ? (startAngle + i * angleStep) : (i * angleStep))
+                    : baseAngle);
 
             const bullet = new Bullet(cx, cy, true);
             bullet.width = 6;
@@ -1064,7 +1079,7 @@ class Tower {
                 bullet.height = beamThickness;
                 bullet.lifeRemaining = Math.max(bullet.lifeRemaining || 0, beamLife);
 
-                bullet.render = function(ctx) {
+                bullet.render = function (ctx) {
                     const centerX = this.x + this.width / 2;
                     const centerY = this.y + this.height / 2;
                     const velocityLength = Math.sqrt(this.vx * this.vx + this.vy * this.vy) || 1;
@@ -1111,7 +1126,7 @@ class Tower {
             } else if (this.type === 'kid') {
                 bullet.width = 12;
                 bullet.height = 12;
-                bullet.render = function(ctx) {
+                bullet.render = function (ctx) {
                     const centerX = this.x + this.width / 2;
                     const centerY = this.y + this.height / 2;
                     const angle = Math.atan2(this.vy || 0, this.vx || 1);
@@ -1143,7 +1158,7 @@ class Tower {
                 bullet.width = 9;
                 bullet.height = 9;
                 bullet.lifeRemaining = Math.max(bullet.lifeRemaining || 0, 900);
-                bullet.render = function(ctx) {
+                bullet.render = function (ctx) {
                     const cx = this.x + this.width / 2;
                     const cy = this.y + this.height / 2;
 
@@ -1166,18 +1181,18 @@ class Tower {
                 };
             }
 
-                // Special handling for bomber projectiles
-                if (this.type === 'bomber') {
-                    bullet.isBomb = true;
-                    bullet.explosionArea = this.explosionArea;
-                    // Override vertical velocity for arc trajectory
-                    bullet.vy = -this.projectileSpeed * 0.7; // Goes up initially
-                    bullet.gravity = 0.015; // Gravity effect for arc
-                    bullet.maxFallSpeed = this.projectileSpeed * 1.2;
-                }
+            // Special handling for bomber projectiles
+            if (this.type === 'bomber') {
+                bullet.isBomb = true;
+                bullet.explosionArea = this.explosionArea;
+                // Override vertical velocity for arc trajectory
+                bullet.vy = -this.projectileSpeed * 0.7; // Goes up initially
+                bullet.gravity = 0.015; // Gravity effect for arc
+                bullet.maxFallSpeed = this.projectileSpeed * 1.2;
+            }
 
             if (!isRailLaser) {
-                bullet.render = function(ctx) {
+                bullet.render = function (ctx) {
                     ctx.fillStyle = this.towerColor || '#ffffff';
                     ctx.beginPath();
                     ctx.arc(this.x + this.width / 2, this.y + this.height / 2, this.width / 2, 0, Math.PI * 2);
@@ -1234,8 +1249,221 @@ class Tower {
             ctx.strokeRect(this.x, this.y, this.width, this.height);
         }
 
-        // Barrel pointing toward current target
-        if (this.target) {
+        if (this.type === 'grohl') {
+            // Dave Grohl needs not a gun. Just his Guitar🎸
+            ctx.save();
+
+            // Calculate angle to target (or default angle if no target)
+            let angle = 0;
+            if (this.target) {
+                const tx = this.target.x + (this.target.width || 0) / 2;
+                const ty = this.target.y + (this.target.height || 0) / 2;
+                angle = Math.atan2(ty - cy, tx - cx);
+            }
+
+            // Position guitar on the edge of the tower
+            const guitarDistance = this.width / 2 + 10;
+            const guitarX = cx + Math.cos(angle) * guitarDistance;
+            const guitarY = cy + Math.sin(angle) * guitarDistance;
+
+            // Rotate the guitar to point at the target
+            ctx.translate(guitarX, guitarY);
+            ctx.rotate(angle + Math.PI / 2);
+
+            // Guitar body (semi-hollow style with curves)
+            ctx.fillStyle = '#87CEEB'; // Light blue (Pelham Blue)
+            ctx.strokeStyle = '#4682B4'; // Darker blue outline
+            ctx.lineWidth = 1.5;
+
+            // Main body shape (wider, more curved)
+            ctx.beginPath();
+            ctx.ellipse(0, 2, 8, 12, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // Body binding (thin white outline)
+            ctx.strokeStyle = '#FFFFFF';
+            ctx.lineWidth = 0.8;
+            ctx.beginPath();
+            ctx.ellipse(0, 2, 7.5, 11.5, 0, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // F-holes (characteristic semi-hollow feature)
+            ctx.fillStyle = '#000000';
+            ctx.lineWidth = 1;
+
+            // Left f-hole
+            ctx.beginPath();
+            ctx.ellipse(-3, 0, 1.2, 4, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(-3, -2, 0.8, 1.5, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(-3, 4, 0.8, 1.5, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Right f-hole
+            ctx.beginPath();
+            ctx.ellipse(3, 0, 1.2, 4, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(3, -2, 0.8, 1.5, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(3, 4, 0.8, 1.5, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Pickups (two humbuckers)
+            ctx.fillStyle = '#2F2F2F'; // Dark gray
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 0.5;
+
+            // Neck pickup
+            ctx.fillRect(-3, -4, 6, 2);
+            ctx.strokeRect(-3, -4, 6, 2);
+
+            // Bridge pickup
+            ctx.fillRect(-3, 6, 6, 2);
+            ctx.strokeRect(-3, 6, 6, 2);
+
+            // Pickup pole pieces (small silver dots)
+            ctx.fillStyle = '#C0C0C0';
+            for (let pickup = 0; pickup < 2; pickup++) {
+                const pickupY = pickup === 0 ? -3 : 7;
+                for (let pole = 0; pole < 6; pole++) {
+                    const poleX = -2.5 + (pole * 1);
+                    ctx.beginPath();
+                    ctx.arc(poleX, pickupY, 0.3, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            // Control knobs (4 knobs)
+            ctx.fillStyle = '#FFD700'; // Gold knobs
+            ctx.strokeStyle = '#B8860B';
+            ctx.lineWidth = 0.5;
+
+            const knobPositions = [
+                { x: -4, y: 9 }, { x: -1, y: 9 },
+                { x: 2, y: 9 }, { x: 5, y: 9 }
+            ];
+
+            knobPositions.forEach(pos => {
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, 0.8, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+
+                // Knob indicator line
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 0.3;
+                ctx.beginPath();
+                ctx.moveTo(pos.x, pos.y - 0.5);
+                ctx.lineTo(pos.x, pos.y - 0.8);
+                ctx.stroke();
+                ctx.strokeStyle = '#B8860B';
+                ctx.lineWidth = 0.5;
+            });
+
+            // Toggle switch
+            ctx.fillStyle = '#2F2F2F';
+            ctx.fillRect(6, 4, 1, 2);
+            ctx.strokeStyle = '#000000';
+            ctx.strokeRect(6, 4, 1, 2);
+
+            // Bridge and tailpiece
+            ctx.fillStyle = '#C0C0C0'; // Chrome/silver
+            ctx.strokeStyle = '#808080';
+            ctx.lineWidth = 0.5;
+
+            // Tune-o-matic bridge
+            ctx.fillRect(-4, 10, 8, 1);
+            ctx.strokeRect(-4, 10, 8, 1);
+
+            // Stop tailpiece
+            ctx.fillRect(-3, 12, 6, 1);
+            ctx.strokeRect(-3, 12, 6, 1);
+
+            // Guitar neck
+            ctx.fillStyle = '#8B4513'; // Mahogany neck
+            ctx.fillRect(-2, -15, 4, 17);
+            ctx.strokeStyle = '#654321';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(-2, -15, 4, 17);
+
+            // Fretboard (darker)
+            ctx.fillStyle = '#2F1B14'; // Ebony/rosewood
+            ctx.fillRect(-1.8, -15, 3.6, 17);
+
+            // Block inlays (pearl/white blocks)
+            ctx.fillStyle = '#FFFAF0'; // Pearl white
+            const inlayPositions = [-12, -8, -4];
+            inlayPositions.forEach(y => {
+                ctx.fillRect(-1.2, y - 0.5, 2.4, 1);
+            });
+
+            // Guitar strings
+            ctx.strokeStyle = '#C0C0C0';
+            ctx.lineWidth = 0.3;
+            for (let i = 0; i < 6; i++) {
+                const stringX = -1.5 + (i * 0.6);
+                ctx.beginPath();
+                ctx.moveTo(stringX, -15);
+                ctx.lineTo(stringX, 13);
+                ctx.stroke();
+            }
+
+            // Black headstock
+            ctx.fillStyle = '#1C1C1C'; // Black headstock
+            ctx.fillRect(-2.5, -18, 5, 4);
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(-2.5, -18, 5, 4);
+
+            // Epiphone logo (simplified white text)
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = '3px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('E', 0, -15.5);
+
+            // Tuning pegs (chrome)
+            ctx.fillStyle = '#C0C0C0';
+            for (let i = 0; i < 3; i++) {
+                // Left side pegs
+                ctx.beginPath();
+                ctx.arc(-2, -17 + (i * 1.2), 0.5, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Right side pegs
+                ctx.beginPath();
+                ctx.arc(2, -17 + (i * 1.2), 0.5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Add rock energy effect when targeting
+            // if (this.target) {
+            //     ctx.strokeStyle = 'rgba(135, 206, 235, 0.8)'; // Blue energy to match guitar
+            //     ctx.lineWidth = 2;
+            //     ctx.beginPath();
+            //     ctx.arc(0, 0, 14, 0, Math.PI * 2);
+            //     ctx.stroke();
+
+            //     // Electric sparks
+            //     for (let i = 0; i < 8; i++) {
+            //         const sparkAngle = (i * Math.PI * 2) / 8;
+            //         ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)'; // White electric sparks
+            //         ctx.lineWidth = 1;
+            //         ctx.beginPath();
+            //         ctx.moveTo(Math.cos(sparkAngle) * 10, Math.sin(sparkAngle) * 10);
+            //         ctx.lineTo(Math.cos(sparkAngle) * 16, Math.sin(sparkAngle) * 16);
+            //         ctx.stroke();
+            //     }
+            // }
+
+            ctx.restore();
+        } else if (this.target) {
+            // Normal barrel rendering for other towers...
             const tx = this.target.x + (this.target.width || 0) / 2;
             const ty = this.target.y + (this.target.height || 0) / 2;
             const angle = Math.atan2(ty - cy, tx - cx);

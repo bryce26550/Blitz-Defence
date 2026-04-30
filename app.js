@@ -23,15 +23,44 @@ const db = new sqlite3.Database('./db/database.db', (err) => {
 db.run(`CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY,
     username VARCHAR(50) NOT NULL UNIQUE,
-    paid INTEGER NOT NULL DEFAULT 0
+    paid INTEGER NOT NULL DEFAULT 0,
+    beatBoss INTEGER NOT NULL DEFAULT 0,
+    fbID INTEGER NOT NULL DEFAULT 0
     )`, (err) => {
     if (err) {
         console.log('Error creating users table:', err);
     } else {
         console.log('Users table ready');
-     }
+    }
 }
 )
+
+db.run(`ALTER TABLE users ADD COLUMN beatBoss INTEGER NOT NULL DEFAULT 0`, (err) => {
+    if (err) {
+        // Column might already exist, which is fine
+        if (err.message.includes('duplicate column name')) {
+            console.log('beatBoss column already exists');
+        } else {
+            console.log('Error adding beatBoss column:', err.message);
+        }
+    } else {
+        console.log('beatBoss column added successfully');
+    }
+});
+
+db.run(`ALTER TABLE users ADD COLUMN fbID INTEGER NOT NULL DEFAULT 0`, (err) => {
+    if (err) {
+        // Column might already exist, which is fine
+        if (err.message.includes('duplicate column name')) {
+            console.log('fbID column already exists');
+        } else {
+            console.log('Error adding fbID column:', err.message);
+        }
+    } else {
+        console.log('fbID column added successfully');
+    }
+});
+
 
 db.run(`CREATE TABLE IF NOT EXISTS game_settings (
     id INTEGER PRIMARY KEY,
@@ -142,13 +171,21 @@ app.get('/login', (req, res) => {
         req.session.user = tokenData.displayName;
         req.session.hasPaid = false;
 
-        //Save user to database if not exists
-        db.run('INSERT OR IGNORE INTO users (username) VALUES (?)', [tokenData.displayName], function (err) {
+        // First try to insert new user
+        db.run('INSERT OR IGNORE INTO users (username, fbID) VALUES (?, ?)', [tokenData.displayName, tokenData.id], function (err) {
             if (err) {
                 return console.log(err.message);
             }
-            console.log(`User ${tokenData.displayName} saved to database.`);
-            res.redirect('/');
+            
+            // Always update the fbID (in case user already existed)
+            db.run('UPDATE users SET fbID = ? WHERE username = ?', [tokenData.id, tokenData.displayName], function(updateErr) {
+                if (updateErr) {
+                    console.log('Error updating fbID:', updateErr.message);
+                } else {
+                    console.log(`✅ User ${tokenData.displayName} (Formbar ID: ${tokenData.id}) saved/updated in database.`);
+                }
+                res.redirect('/');
+            });
         });
 
     } else {
@@ -156,6 +193,7 @@ app.get('/login', (req, res) => {
         res.redirect(`${AUTH_URL}/oauth?redirectURL=${THIS_URL}`);
     };
 });
+
 
 app.get('/logout', (req, res) => {
     req.session.destroy();
@@ -192,6 +230,83 @@ app.get('/loadCustomization', isAuthenticated, (req, res) => {
     });
 });
 
+app.get('/debug/myuser', isAuthenticated, (req, res) => {
+    const userId = req.session.token.id;
+    const username = req.session.user;
+    
+    console.log(`Debug: Looking for user with ID: ${userId}, username: ${username}`);
+    
+    // Check by ID
+    db.get('SELECT * FROM users WHERE fbID = ?', [userId], (err, rowById) => {
+        if (err) {
+            return res.json({ error: err.message });
+        }
+        
+        // Also check by username
+        db.get('SELECT * FROM users WHERE username = ?', [username], (err2, rowByUsername) => {
+            if (err2) {
+                return res.json({ error: err2.message });
+            }
+            
+            res.json({ 
+                searchedUserId: userId,
+                searchedUsername: username,
+                foundById: rowById || null,
+                foundByUsername: rowByUsername || null,
+                sessionData: {
+                    id: req.session.token.id,
+                    displayName: req.session.token.displayName,
+                    sessionUser: req.session.user
+                }
+            });
+        });
+    });
+});
+
+app.get('/debug/dbtest', isAuthenticated, (req, res) => {
+    const userId = req.session.token.id;
+
+    // Test 1: Can we read from the database?
+    db.get('SELECT * FROM users WHERE id = ?', [userId], (err, row) => {
+        if (err) {
+            return res.json({ test1: 'FAILED', error: err.message });
+        }
+
+        // Test 2: Can we write to the database?
+        db.run('UPDATE users SET paid = paid WHERE id = ?', [userId], function (updateErr) {
+            if (updateErr) {
+                return res.json({
+                    test1: 'PASSED',
+                    user: row,
+                    test2: 'FAILED',
+                    updateError: updateErr.message
+                });
+            }
+
+            res.json({
+                test1: 'PASSED',
+                user: row,
+                test2: 'PASSED',
+                rowsAffected: this.changes
+            });
+        });
+    });
+});
+
+app.get('/checkGrohlUnlock', isAuthenticated, (req, res) => {
+    const userId = req.session.token.id;
+
+    db.get('SELECT beatBoss FROM users WHERE id = ?', [userId], (err, row) => {
+        if (err) {
+            console.log('Error checking Grohl unlock status:', err);
+            res.json({ ok: false, error: 'Failed to check unlock status' });
+        } else {
+            const hasBeatenBoss = row && row.beatBoss === 1;
+            res.json({ ok: true, grohlUnlocked: hasBeatenBoss });
+        }
+    })
+})
+
 // Save player customization
 app.post('/saveCustomization', isAuthenticated, (req, res) => {
     const userId = req.session.token.id;
@@ -213,6 +328,71 @@ app.post('/saveCustomization', isAuthenticated, (req, res) => {
         }
     );
 });
+
+// Record Boss defeat
+app.post('/recordBossDefeat', isAuthenticated, (req, res) => {
+    const { waveNumber, timeTaken } = req.body;
+    const userId = req.session.token.id;
+    const username = req.session.user;
+
+    console.log(`🎯 Recording boss defeat for user ${username} (ID: ${userId})`);
+
+    // Verify this is actually wave 41 (Smith)
+    if (waveNumber !== 41) {
+        console.log(`❌ Invalid wave number: ${waveNumber}, expected 41`);
+        return res.json({ ok: false, error: 'Invalid boss wave' });
+    }
+
+    // First, check if user exists and current beatBoss status
+    db.get('SELECT fbID, username, beatBoss FROM users WHERE fbID = ?', [userId], (err, row) => {
+        if (err) {
+            console.error('❌ Error checking user:', err);
+            return res.json({ ok: false, error: 'Database error' });
+        }
+
+        if (!row) {
+            console.log(`❌ User ${userId} not found in database`);
+            return res.json({ ok: false, error: 'User not found' });
+        }
+
+        console.log(`📊 Current user data:`, row);
+
+        // Now update the beatBoss status
+        db.run('UPDATE users SET beatBoss = 1 WHERE fbID = ?', [userId], function (err) {
+            if (err) {
+                console.error('❌ Error updating boss defeat status:', err);
+                return res.json({ ok: false, error: 'Failed to record boss defeat' });
+            }
+
+            console.log(`✅ UPDATE executed. Rows affected: ${this.changes}`);
+
+            if (this.changes === 0) {
+                console.log(`⚠️  No rows were updated! User ID ${userId} might not exist.`);
+                return res.json({ ok: false, error: 'No rows updated' });
+            }
+
+            // Verify the update worked
+            db.get('SELECT beatBoss FROM users WHERE fbID = ?', [userId], (err, updatedRow) => {
+                if (err) {
+                    console.error('❌ Error verifying update:', err);
+                } else {
+                    console.log(`✅ Verification: User ${userId} beatBoss is now:`, updatedRow.beatBoss);
+                }
+
+                res.json({
+                    ok: true,
+                    message: 'Boss defeat recorded successfully',
+                    grohlUnlocked: true,
+                    debug: {
+                        rowsAffected: this.changes,
+                        newBeatBossValue: updatedRow ? updatedRow.beatBoss : 'unknown'
+                    }
+                });
+            });
+        });
+    });
+});
+
 
 // Make sure these middleware lines are uncommented
 app.use(express.json());
