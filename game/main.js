@@ -20,7 +20,7 @@ function hidePayment() {
 }
 
 //Some don't work on intended or just need some touching up before being added to the shop
-const AVAILABLE_TOWER_SHOP_KEYS = new Set(['shooter', 'blaster', 'wizard', 'hacker', 'overlord', 'generator', 'sentinel', 'railgun', 'gambler', 'bomber']);
+const AVAILABLE_TOWER_SHOP_KEYS = new Set(['shooter', 'blaster', 'wizard', 'hacker', 'overlord', 'generator', 'sentinel', 'railgun', 'gambler', 'bomber', 'grohl', 'oppenheimer']);
 
 function isTowerShopAvailable(key) {
     return AVAILABLE_TOWER_SHOP_KEYS.has(key);
@@ -794,6 +794,28 @@ class Game {
         panel.classList.remove('inactive');
 
         const tower = this.selectedPlacedTower;
+        // Special UI for Oppenheimer tower: per-round reset purchase
+        if (tower.type === 'oppenheimer') {
+            const cost = tower.opResetCost || 5000;
+            const roundsLeft = typeof tower.roundsUntilDetonation === 'number' ? tower.roundsUntilDetonation : 0;
+            let bodyHTML = '';
+            if (tower.currentUpgradeImage) {
+                bodyHTML += `<img src="${tower.currentUpgradeImage}" class="upgrade-preview-img" alt="${tower.name}">`;
+            }
+            bodyHTML += `<div class="upgrade-info">
+                <div class="upgrade-name">Reset Countdown</div>
+                <div class="upgrade-description">Pay each round to reset the detonation countdown. Rounds remaining: ${roundsLeft}</div>
+                <div class="upgrade-cost">Cost: $${cost}</div>
+            </div>`;
+
+            body.innerHTML = bodyHTML;
+            upgradeButton.textContent = `Reset Countdown ($${cost})`;
+            upgradeButton.disabled = this.money < cost;
+            upgradeButton.dataset.upgradeId = 'oppenheimer_reset';
+            sellButton.textContent = `Sell ($${sellValue})`;
+            sellButton.disabled = false;
+            return;
+        }
         const nextUpgrades = tower.getAvailableUpgrades ? tower.getAvailableUpgrades() : [];
         const nextUpgrade = nextUpgrades[0];
         const gamblerRollLocked =
@@ -849,7 +871,22 @@ class Game {
 
     buySelectedTowerUpgrade() {
         const tower = this.selectedPlacedTower;
-        if (!tower || !tower.getAvailableUpgrades || !tower.applyUpgrade) return;
+        if (!tower) return;
+
+        // Special-case: Oppenheimer per-round reset purchase
+        if (tower.type === 'oppenheimer') {
+            const cost = tower.opResetCost || 5000;
+            if (this.money < cost) return;
+            this.money -= cost;
+            tower.opPaidThisRound = true;
+            tower.roundsUntilDetonation = tower.opResetRounds || 1;
+            this.playSound('war');
+            this.updateGameUI();
+            console.log(`Oppenheimer reset purchased. Money left: ${this.money}`);
+            return;
+        }
+
+        if (!tower.getAvailableUpgrades || !tower.applyUpgrade) return;
 
         const [nextUpgrade] = tower.getAvailableUpgrades();
         if (!nextUpgrade) return;
@@ -2063,7 +2100,7 @@ class Game {
                 return true;
             }
 
-            if (enemy.isFinalBoss && !this.smithCutsceneActive && !this.smithCutsceneResolved) {
+            if (enemy.isFinalBoss && !enemy.reachedBase && !this.smithCutsceneActive && !this.smithCutsceneResolved) {
                 console.log('Smith HP dropped to 0, showing choice dialog...');
                 this.showSmithCutscene(enemy);
                 return true;
@@ -2332,6 +2369,33 @@ class Game {
             ...this.sprinters,
             ...this.bosses
         ];
+        // Per-round Oppenheimer logic: require a per-round payment to reset
+        for (let i = 0; i < this.placedTowers.length; i++) {
+            const t = this.placedTowers[i];
+            if (!t || t.type !== 'oppenheimer') continue;
+            if (t.opPaidThisRound) {
+                // Reset purchased this round — set countdown and clear flag
+                t.roundsUntilDetonation = t.opResetRounds || 1;
+                t.opPaidThisRound = false;
+            } else {
+                // No purchase this round — decrement rounds remaining
+                t.roundsUntilDetonation = (t.roundsUntilDetonation || 0) - 1;
+            }
+
+            if ((t.roundsUntilDetonation || 0) <= 0) {
+                console.log('Oppenheimer detonated!');
+                // Large visual effect and wipe
+                for (let e = 0; e < 30; e++) {
+                    const x = Math.random() * this.width;
+                    const y = Math.random() * this.height;
+                    this.createExplosion(x, y);
+                }
+                this.clearAllEnemies();
+                this.gameOver();
+                return; // stop loading the wave
+            }
+        }
+
         this.runHackerRoundHack(allEnemies);
     }
 

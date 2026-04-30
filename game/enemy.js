@@ -958,6 +958,7 @@ class Smith {
         // Final boss properties
         this.isFinalBoss = true;
         this.name = "Smith - The Final Boss";
+        this.reachedBase = false;
 
         console.log('Smith - The Final Boss has awakened!');
     }
@@ -987,9 +988,9 @@ class Smith {
 
             // Check if enemy reached the base (within 50 pixels for larger boss)
             if (distance <= 50) {
-                // Deal massive damage and mark for removal
+                this.reachedBase = true;
                 if (window.game) {
-                    window.game.takeDamage(this.damage);
+                    window.game.gameOver();
                     window.game.createExplosion(this.x + this.width / 2, this.y + this.height / 2);
                 }
                 this.hp = 0;

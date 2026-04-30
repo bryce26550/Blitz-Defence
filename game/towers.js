@@ -1,7 +1,4 @@
 // Tower classes
-
-const { name } = require("ejs");
-
 const TOWER_TYPES = {
     shooter: {
         name: 'Shooter',
@@ -177,7 +174,12 @@ const TOWER_TYPES = {
         damage: 9999999,
         image: '/img/nuke.png',
         width: 40,
-        height: 40
+        height: 40,
+        // Per-round reset cost: player must pay this each round to reset the
+        // detonation timer. Default is intentionally high.
+        resetCost: 5000,
+        // How many rounds a reset buys (1 == must pay every round)
+        resetRounds: 1
     }
 };
 
@@ -911,6 +913,15 @@ class Tower {
         this.currentUpgradeImage = def.image || null;
         this.totalSpent = Number.isFinite(def.cost) ? def.cost : 0;
         this.totalHackedMoney = 0;
+
+        // Oppenheimer-specific state: a per-round detonation countdown
+        if (this.type === 'oppenheimer') {
+            this.opResetCost = def.resetCost || 5000;
+            this.opResetRounds = def.resetRounds || 1;
+            this.roundsUntilDetonation = this.opResetRounds;
+            // Flag set when player pays to reset during the round; cleared on wave load
+            this.opPaidThisRound = false;
+        }
 
         this.fireCooldown = 0;
         this.spellCooldown = this.spellCastRate;
