@@ -6,7 +6,7 @@ const TOWER_TYPES = {
         cost: 100,
         damage: 1,
         range: 100,
-        fireRate: 1200,
+        fireRate: 1000,
         color: '#4CAF50',
         projectileCount: 1,
         projectileSpeed: 1,
@@ -32,7 +32,7 @@ const TOWER_TYPES = {
         name: 'Railgun',
         cost: 300,
         damage: 5,
-        range: 1000,
+        range: 999999999999,
         fireRate: 3000,
         color: '#2196F3',
         projectileCount: 1,
@@ -97,7 +97,7 @@ const TOWER_TYPES = {
     },
     generator: {
         name: 'Shield Generator',
-        cost: 50,
+        cost: 1250,
         damage: 0,
         color: '#00BCD4',
         width: 30,
@@ -558,7 +558,7 @@ const TOWER_UPGRADES = {
             cost: 7500,
             image: '/img/chickenJockey.png',
             apply: (tower) => {
-                tower.summonCount = (tower.summonCount || 1) + 1;
+                tower.summonCount = (tower.summonCount || 1) * 2;
                 tower.summonSpeed = Math.round((tower.summonSpeed || 2500) * 1.5);
             }
         },
@@ -566,13 +566,13 @@ const TOWER_UPGRADES = {
             id: 'chickenJockey',
             tier: 6,
             name: 'Chicken Jockey',
-            description: 'Chicken Jockeys! Peck your enemies eyes out. Increased spawn count and speed with less summon speed.',
+            description: 'Chicken Jockeys! Peck your enemies eyes out. Increased spawn count and speed with Greater summon speed.',
             cost: 50,
             image: '/img/chickenJockey.png',
             apply: (tower) => {
                 tower.summonCount = (tower.summonCount || 1) + 1;
                 tower.summonMoveSpeedMultiplier = (tower.summonMoveSpeedMultiplier || 1) + 0.2;
-                tower.summonSpeed = Math.max(1200, Math.round((tower.summonSpeed || 2500) * 1.25));
+                tower.summonSpeed = Math.max(1200, Math.round((tower.summonSpeed || 2500) * 0.75));
             }
         }
     ],
@@ -799,7 +799,7 @@ const TOWER_UPGRADES = {
             cost: 'Everything you have and more!',
             image: '/img/grohl.png',
             apply: (tower) => {
-                tower.damage = 100;
+                tower.damage = 5;
                 tower.range = 1000000000000000;
                 tower.fireRate = 500;
                 tower.projectileCount = Math.max(1000, tower.projectileCount * 1000);

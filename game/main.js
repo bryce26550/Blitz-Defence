@@ -1452,7 +1452,11 @@ class Game {
         }
 
         if (typeof def.range === 'number') {
-            parts.push(`RNG ${def.range} `);
+            if (TOWER_TYPES === 'railgun') {
+                parts.push(`RNG ∞ `);
+            } else {
+                parts.push(`RNG ${def.range} `);
+            }
         }
 
         if (typeof def.fireRate === 'number') {
@@ -2506,54 +2510,38 @@ class Game {
     getEnemyBucketForClass(EnemyClass) {
         if (!EnemyClass) return 'enemies';
 
-        if (EnemyClass === Smith || EnemyClass.name === 'Smith') return 'bosses';
-        if (EnemyClass === Boss || EnemyClass.name === 'Boss') return 'bosses';
-        if (EnemyClass === Tank || EnemyClass.name === 'Tank') return 'tanks';
+        const className = EnemyClass.name || '';
 
-        if (
-            EnemyClass === Sprinter1 ||
-            EnemyClass === Sprinter2 ||
-            (EnemyClass.name && EnemyClass.name.startsWith('Sprinter'))
-        ) {
+        // Smith and Boss variants
+        if (className === 'Smith' ||
+            className === 'Boss1' ||
+            className === 'Boss2' ||
+            className === 'Boss3') {
+            return 'bosses';
+        }
+
+        // Tank variants
+        if (className === 'Tank1' ||
+            className === 'Tank2' ||
+            className === 'Tank3') {
+            return 'tanks';
+        }
+
+        // Sprinter variants
+        if (className === 'Sprinter1' ||
+            className === 'Sprinter2' ||
+            className === 'Sprinter3') {
             return 'sprinters';
         }
 
-        if (
-            EnemyClass === Enemy1 ||
-            EnemyClass === Enemy2 ||
-            EnemyClass === Enemy3 ||
-            (EnemyClass.name && EnemyClass.name.startsWith('Enemy'))
-        ) {
+        // Enemy variants
+        if (className === 'Enemy1' ||
+            className === 'Enemy2' ||
+            className === 'Enemy3') {
             return 'enemies';
         }
 
-        return 'enemies';
-    }
-
-    getEnemyBucketForClass(EnemyClass) {
-        if (!EnemyClass) return 'enemies';
-
-        if (EnemyClass === Smith || EnemyClass.name === 'Smith') return 'bosses';
-        if (EnemyClass === Boss || EnemyClass.name === 'Boss') return 'bosses';
-        if (EnemyClass === Tank || EnemyClass.name === 'Tank') return 'tanks';
-
-        if (
-            EnemyClass === Sprinter1 ||
-            EnemyClass === Sprinter2 ||
-            (EnemyClass.name && EnemyClass.name.startsWith('Sprinter'))
-        ) {
-            return 'sprinters';
-        }
-
-        if (
-            EnemyClass === Enemy1 ||
-            EnemyClass === Enemy2 ||
-            EnemyClass === Enemy3 ||
-            (EnemyClass.name && EnemyClass.name.startsWith('Enemy'))
-        ) {
-            return 'enemies';
-        }
-
+        // Fallback
         return 'enemies';
     }
 
