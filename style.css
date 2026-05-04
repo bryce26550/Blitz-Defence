@@ -1084,6 +1084,33 @@ label.checkbox {
     letter-spacing: 0.2px;
 }
 
+/* Locked tower styling */
+.tower-card.locked {
+    background: rgba(60, 60, 60, 0.7);
+    border-color: #666;
+    cursor: not-allowed;
+}
+
+.tower-card.locked:hover {
+    background: rgba(80, 80, 80, 0.7);
+    border-color: #888;
+    transform: none;
+}
+
+.tower-card.locked .tower-card-name {
+    color: #ccc;
+}
+
+.tower-card.locked .tower-card-stats {
+    color: #aaa;
+    font-style: italic;
+}
+
+.tower-card.locked .tower-card-cost {
+    color: #ff6666;
+}
+
+
 #towerUpgradePanel {
     width: auto;
     background: rgba(0, 0, 0, 0.78);
@@ -1332,7 +1359,8 @@ label.checkbox {
 /* Final Boss Health Bar */
 .boss-health-bar {
     position: fixed;
-    top: 110px;  /* Changed from 10px to 40px to make room for name */
+    top: 110px;
+    /* Changed from 10px to 40px to make room for name */
     left: 50%;
     transform: translateX(-50%);
     width: 80%;
@@ -1368,7 +1396,8 @@ label.checkbox {
 
 .boss-name {
     position: absolute;
-    top: -25px;  /* Changed from -25px to -30px for better spacing */
+    top: -25px;
+    /* Changed from -25px to -30px for better spacing */
     left: 50%;
     transform: translateX(-50%);
     color: #ff0000;
@@ -1382,24 +1411,60 @@ label.checkbox {
     left: 20px;
     position: relative;
     transform: translateX(-50%);
-    padding: 4px 8px; 
+    padding: 4px 8px;
     background: rgba(20, 20, 30, 0.95);
-    color: #666; 
-    font-size: 10px; 
-    border: 1px solid rgba(40, 40, 50, 0.8); 
-    border-radius: 3px; 
+    color: #666;
+    font-size: 10px;
+    border: 1px solid rgba(40, 40, 50, 0.8);
+    border-radius: 3px;
     cursor: pointer;
     font-family: inherit;
-    transition: all 0.2s ease; 
+    transition: all 0.2s ease;
 }
 
 #bossBtn:hover {
     background: rgba(30, 30, 40, 0.95);
-    color: #888; 
+    color: #888;
     border-color: rgba(60, 60, 70, 0.9);
 }
 
 #bossBtn:active {
-    transform: translateX(-50%) scale(0.95); 
+    transform: translateX(-50%) scale(0.95);
 }
 
+/* Grohl-disabled tower styling - reuse coming-soon style */
+.tower-card.grohl-disabled {
+    opacity: 0.38;
+    cursor: not-allowed;
+    filter: grayscale(100%) brightness(0.6);
+}
+
+.tower-card.grohl-disabled:hover {
+    transform: none;
+    border-color: rgba(255, 255, 255, 0.16);
+    background: rgba(30, 30, 30, 0.92);
+    box-shadow: none;
+}
+
+.tower-card.grohl-disabled .tower-card-icon {
+    filter: grayscale(100%) brightness(0.4);
+}
+
+.tower-card.grohl-disabled .tower-card-name,
+.tower-card.grohl-disabled .tower-card-stats,
+.tower-card.grohl-disabled .tower-card-cost {
+    color: rgba(255, 255, 255, 0.55);
+}
+
+.tower-card.grohl-disabled .tower-card-action {
+    color: #ff4444 !important;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+/* Optional: Add a subtle rock emoji indicator */
+.tower-card.grohl-disabled .tower-card-name::after {
+    content: " 🎸";
+    font-size: 10px;
+    opacity: 0.7;
+}
