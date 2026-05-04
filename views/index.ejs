@@ -92,8 +92,29 @@
     <audio id="wizardDoubleStrike" preload="auto">
         <source src="sfx/shadowWizards.mp3" type="audio/mpeg">
     </audio>
+    <audio id="thinkFast" preload="auto">
+        <source src="sfx/thinkFast.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="genFinished" preload="auto">
+        <source src="sfx/genFinished.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="nerfgun" preload="auto">
+        <source src="sfx/nerfgun.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="fireworks" preload="auto">
+        <source src="sfx/fireworks.mp3" type="audio/mpeg">
+    </audio>
     <audio id="diceRoll" preload="auto">
         <source src="sfx/dice_roll.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="war" preload="auto">
+        <source src="sfx/war.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="vats" preload="auto">
+        <source src="sfx/vats.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="noTeacher" preload="auto">
+        <source src="sfx/noTeacher.mp3" type="audio/mpeg">
     </audio>
 
     <div id="gameContainer">
@@ -106,6 +127,7 @@
             <div id="exp">EXP: <span id="expValue">0</span>/<span id="expMaxValue">100</span></div> -->
             <div id="health">Shield: <span id="healthValue">250</span>/<span id="healthMaxValue">250</span></div>
             <div id="money">Digipogs: <span id="moneyValue">99999</span></div>
+            <button id="speedToggleBtn" class="speed-toggle-btn" type="button" aria-pressed="false">Speed x1</button>
 
             <!-- <div class="progress-container">
                 <div class="progress-bar">
@@ -275,11 +297,31 @@
         <div id="victoryMenu" class="menu-overlay hidden">
             <div class="menu-panel">
                 <h1 class="victory-title">Victory!</h1>
+                <p id="victoryMessage" class="victory-message hidden"></p>
                 <div class="menu-buttons">
                     <!-- <button id="endlessBtn" class="primary-btn">ENDLESS MODE</button> -->
                     <button id="victoryRestartBtn" class="secondary-btn">PLAY AGAIN</button>
                     <button id="victoryMainMenuBtn" class="secondary-btn">MAIN MENU</button>
                     <button id="bossBtn" class="bossBtn">BOSS?</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Smith Dialogue -->
+        <div id="smithCutscene" class="menu-overlay cutscene-overlay hidden">
+            <div class="menu-panel cutscene-panel">
+                <div class="cutscene-label">Smith</div>
+                <div class="cutscene-art">
+                    <img id="smithCutsceneMainImage" class="cutscene-image primary-cutscene-image" src="/img/smith.png" alt="Smith">
+                    <img id="smithCutsceneSideImage" class="cutscene-image hidden" src="/img/prozac.png" alt="Prozac">
+                </div>
+                <div class="dialogue-box">
+                    <div class="dialogue-speaker">Smith</div>
+                    <div id="smithCutsceneDialogue" class="dialogue-text">Smith lowers his weapon and waits for your choice.</div>
+                </div>
+                <div class="menu-buttons cutscene-actions">
+                    <button id="smithSpareBtn" class="primary-btn">Spare Smith</button>
+                    <button id="smithRefuseBtn" class="secondary-btn">Don't spare Smith</button>
                 </div>
             </div>
         </div>

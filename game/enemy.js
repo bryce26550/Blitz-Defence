@@ -565,6 +565,7 @@ class Smith {
         // Final boss properties
         this.isFinalBoss = true;
         this.name = "Smith - The Final Boss";
+        this.reachedBase = false;
 
         console.log('Smith - The Final Boss has awakened!');
     }
@@ -594,9 +595,10 @@ class Smith {
 
             // Check if enemy reached the base (within 50 pixels for larger boss)
             if (distance <= 50) {
-                // Deal massive damage and mark for removal
+                this.reachedBase = true;
                 if (window.game) {
-                    window.game.takeDamage(this.damage);
+                    window.game.finalBossReachedBase = true;
+                    window.game.gameOver();
                     window.game.createExplosion(this.x + this.width / 2, this.y + this.height / 2);
                 }
                 this.hp = 0;
@@ -656,6 +658,135 @@ class Smith {
         );
 
         ctx.restore();
+    }
+}
+
+class Hayden extends Boss {
+    constructor(x, y) {
+        super(x, y);
+        this.width = 100;
+        this.height = 100;
+        this.speed = 1.35;
+        this.hp = 120000;
+        this.maxHp = 120000;
+        this.damage = 999;
+        this.worth = 2500;
+        this.isStunImmune = false;
+        this.name = 'Hayden the True Final Boss';
+        this.spinAngle = 0;
+        this.spinTimer = 0;
+        this.spinSpeed = 0;
+        this.nextSpinAt = Date.now() + 1200 + Math.random() * 1800;
+        this.tauntTimer = 0;
+        this.tauntMessage = '';
+        this.nextTauntAt = Date.now() + 700 + Math.random() * 1200;
+
+        this.image = new Image();
+        this.image.src = '/img/hayden.png';
+        this.imageLoaded = false;
+
+        this.image.onload = () => {
+            this.imageLoaded = true;
+            console.log('Hayden image loaded successfully');
+        };
+
+        this.image.onerror = () => {
+            console.error('Failed to load Hayden image');
+        };
+
+        this.isHayden = true;
+        this.isFinalBoss = false;
+        this.name = 'Hayden the True Final Boss';
+        this.reachedBase = false;
+
+        console.log('Hayden has entered the battlefield!');
+    }
+
+    update(deltaTime) {
+        const now = Date.now();
+
+        if (this.spinTimer > 0) {
+            this.spinTimer -= deltaTime;
+            this.spinAngle += this.spinSpeed * deltaTime;
+            if (this.spinTimer <= 0) {
+                this.spinTimer = 0;
+                this.spinSpeed = 0;
+            }
+        } else if (now >= this.nextSpinAt) {
+            this.spinTimer = 850 + Math.random() * 650;
+            this.spinSpeed = 0.0025 + Math.random() * 0.0015;
+            this.nextSpinAt = now + 2200 + Math.random() * 3200;
+        }
+
+        if (this.tauntTimer > 0) {
+            this.tauntTimer -= deltaTime;
+            if (this.tauntTimer <= 0) {
+                this.tauntTimer = 0;
+                this.tauntMessage = '';
+            }
+        } else if (now >= this.nextTauntAt) {
+            this.tauntMessage = 'no teacher no crazy';
+            this.tauntTimer = 1400;
+            this.nextTauntAt = now + 2600 + Math.random() * 2600;
+            console.log('Hayden says: no teacher no crazy');
+        }
+
+        this.followPath(deltaTime);
+    }
+
+    renderTauntBubble(ctx) {
+        if (!this.tauntMessage) return;
+
+        ctx.save();
+        ctx.font = 'bold 16px Arial';
+        const text = this.tauntMessage;
+        const padding = 10;
+        const textWidth = ctx.measureText(text).width;
+        const bubbleWidth = textWidth + padding * 2;
+        const bubbleHeight = 28;
+        const bubbleX = this.x + this.width / 2 - bubbleWidth / 2;
+        const bubbleY = this.y - bubbleHeight - 10;
+
+        ctx.fillStyle = 'rgba(12, 24, 58, 0.92)';
+        ctx.strokeStyle = '#69a7ff';
+        ctx.lineWidth = 2;
+        ctx.fillRect(bubbleX, bubbleY, bubbleWidth, bubbleHeight);
+        ctx.strokeRect(bubbleX, bubbleY, bubbleWidth, bubbleHeight);
+
+        ctx.fillStyle = '#d7ecff';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(text, this.x + this.width / 2, bubbleY + bubbleHeight / 2 + 1);
+        ctx.restore();
+    }
+
+    render(ctx) {
+        ctx.save();
+
+        const imageScale = 2.5;
+        const imageWidth = this.width * imageScale;
+        const imageHeight = this.height * imageScale;
+        const offsetX = (imageWidth - this.width) / 2;
+        const offsetY = (imageHeight - this.height) / 2;
+
+        const centerX = this.x + this.width / 2;
+        const centerY = this.y + this.height / 2;
+
+        ctx.translate(centerX, centerY);
+        if (this.spinTimer > 0) {
+            ctx.rotate(this.spinAngle);
+        }
+
+        ctx.drawImage(
+            this.image,
+            -offsetX,
+            -offsetY,
+            imageWidth,
+            imageHeight
+        );
+
+        ctx.restore();
+        this.renderTauntBubble(ctx);
     }
 }
 

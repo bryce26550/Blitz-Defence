@@ -431,6 +431,97 @@ label.checkbox {
     align-items: center;
 }
 
+.victory-message {
+    color: #f4f0d6;
+    font-size: 16px;
+    line-height: 1.5;
+    margin: 0 0 18px 0;
+    max-width: 420px;
+}
+
+.cutscene-overlay {
+    z-index: 110;
+    background: rgba(4, 8, 18, 0.9);
+}
+
+.cutscene-panel {
+    max-width: 720px;
+    width: min(92vw, 720px);
+    background: linear-gradient(180deg, rgba(17, 23, 38, 0.98), rgba(7, 10, 18, 0.98));
+    border-color: rgba(255, 255, 255, 0.14);
+    box-shadow: 0 18px 60px rgba(0, 0, 0, 0.65);
+}
+
+.cutscene-label {
+    color: #ffcb6b;
+    font-size: 13px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    margin-bottom: 18px;
+}
+
+.cutscene-art {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+}
+
+.cutscene-image {
+    width: min(30vw, 170px);
+    max-width: 170px;
+    aspect-ratio: 1 / 1;
+    object-fit: contain;
+    padding: 12px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25);
+}
+
+.primary-cutscene-image {
+    width: min(38vw, 220px);
+    max-width: 220px;
+}
+
+.dialogue-box {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 12px;
+    padding: 22px 24px;
+    text-align: left;
+    margin-bottom: 22px;
+}
+
+.dialogue-speaker {
+    color: #8fe3ff;
+    font-size: 14px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-bottom: 10px;
+}
+
+.dialogue-text {
+    color: #ffffff;
+    font-size: 24px;
+    line-height: 1.35;
+}
+
+.cutscene-actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+}
+
+.cutscene-actions .primary-btn,
+.cutscene-actions .secondary-btn {
+    min-width: 190px;
+}
+
 .footer-text {
     color: #aaaaaa;
     font-size: 12px;
@@ -508,6 +599,7 @@ label.checkbox {
     top: 10px;
     left: 10px;
     display: flex;
+    flex-wrap: wrap;
     gap: 8px;
     align-items: flex-start;
     color: white;
@@ -523,6 +615,30 @@ label.checkbox {
     border-radius: 6px;
     border: 2px solid rgba(255, 255, 255, 0.06);
     font-size: 16px;
+}
+
+.speed-toggle-btn {
+    background: rgba(255, 255, 255, 0.05);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.speed-toggle-btn:hover {
+    background: rgba(255, 255, 255, 0.09);
+    border-color: rgba(255, 255, 255, 0.25);
+    transform: translateY(-1px);
+}
+
+.speed-toggle-btn.active {
+    background: rgba(113, 255, 77, 0.16);
+    border-color: rgba(113, 255, 77, 0.55);
+    color: #d8ffd1;
 }
 
 .progress-container {

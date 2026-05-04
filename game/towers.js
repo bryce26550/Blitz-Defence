@@ -1,5 +1,4 @@
 // Tower classes
-
 const TOWER_TYPES = {
     shooter: {
         name: 'Shooter',
@@ -82,7 +81,7 @@ const TOWER_TYPES = {
         cost: 500,
         damage: 3,
         range: 65,
-        fireRate: 1500,
+        fireRate: 2200,
         pierce: 0,
         projectileSpeed: 0.85,
         projectileCount: 1,
@@ -111,7 +110,7 @@ const TOWER_TYPES = {
         name: 'Sentinel',
         range: 130,
         damage: 1,
-        fireRate: 80,
+        fireRate: 250,
         pierce: 0,
         projectileSpeed: 1,
         projectileLife: 1,
@@ -122,7 +121,7 @@ const TOWER_TYPES = {
         damageReinforced: false,
         width: 30,
         height: 30,
-        cost: 500,
+        cost: 750,
         color: '#7c7c7cff',
         image: '/img/burst.png'
     },
@@ -141,16 +140,20 @@ const TOWER_TYPES = {
         projectileSpeed: 1,
         width: 30,
         height: 30,
-        image: '/img/wizard.png'
+        image: '/img/shadowWizard.png'
     },
-    kid: {
+    silly: {
         name: 'Silly Billy',
         cost: 175,
-        damage: 0,
+        damage: 1,
         range: 85,
-        fireRate: 900,
+        fireRate: 1200,
         stunChance: 1,
-        stunDuration: 2000,
+        stunDuration: 2200,
+        stunRadius: 0,
+        poisonDamage: 0,
+        poisonDuration: 0,
+        poisonTickRate: 0,
         width: 30,
         height: 30,
         color: '#f7d36b',
@@ -168,6 +171,20 @@ const TOWER_TYPES = {
         width: 30,
         height: 30,
         image: '/img/grohl.png'
+    }, 
+    oppenheimer: {
+        name: 'Oppenheimer',
+        cost: 1,
+        damage: 12,
+        range: 120,
+        fireRate: 1500,
+        projectileSpeed: 6,
+        projectileCount: 0,
+        color: '#4a4a4a',
+        image: '/img/nuke.png',
+        width: 40,
+        height: 40,
+        pierce: 1
     }
 };
 
@@ -331,7 +348,7 @@ const TOWER_UPGRADES = {
             tier: 6,
             name: 'Miku Miku Beam',
             description: 'Miku Miku Beeeeeeaaammmm! Improves damage, attack speed, and gives infinite pierce/range.',
-            cost: 50,
+            cost: 10000,
             image: '/img/miku.png',
             apply: (tower) => {
                 tower.damage += 10;
@@ -397,7 +414,6 @@ const TOWER_UPGRADES = {
             id: 'overdrive',
             tier: 5,
             name: 'Overdrive',
-            //update fire rate to be faster since its description has been upated to be faster instead of slower
             description: 'Time to take this puppy into overdrive. Increased damage and pierce, and a faster fire rate.',
             cost: 5500,
             image: '/img/megaman.png',
@@ -426,18 +442,33 @@ const TOWER_UPGRADES = {
             id: 'luckyCharm',
             tier: 1,
             name: 'Lucky Charm',
-            description: 'A lucky charm that allows you to try your luck and get a different tower/upgrade.',
+            description: 'Roll for a random buff/upgrade each round. ',
             cost: 50,
             image: '/img/pokerTable.jpg',
-            //Randomly apply upgrades from other towers. Only applies one upgrade and cannot apply gambler upgrades to avoid infinite loops.
-            //Maybe change it so it has a chance to get a random other towers upgrade/look like them until end of turn
+            //Randomly apply upgrades
             apply: (tower) => {
                 const rolls = [
                     () => { tower.damage += 2; },
+                    () => { tower.damage += 4; scaleFireRate(tower, 1.15, 90); },
                     () => { tower.range += 25; },
+                    () => { tower.range += 45; },
                     () => { scaleFireRate(tower, 0.75, 90); },
+                    () => { scaleFireRate(tower, 0.6, 75); },
                     () => { addPierce(tower, 2); },
+                    () => { addPierce(tower, 4); },
                     () => { tower.projectileCount += 1; },
+                    () => {
+                        tower.projectileCount += 1;
+                        tower.range += 12;
+                    },
+                    () => {
+                        tower.damage += 2;
+                        addPierce(tower, 1);
+                    },
+                    () => {
+                        tower.seeHidden = true;
+                        tower.range += 10;
+                    },
                 ];
                 const index = Math.floor(Math.random() * rolls.length);
                 rolls[index]();
@@ -461,7 +492,7 @@ const TOWER_UPGRADES = {
             tier: 2,
             name: 'Hacker Knowledge',
             description: 'Enhanced abilities allow for deeper system access. Make some more money per hack.',
-            cost: 3975,
+            cost: 4000,
             image: '/img/redditMod.png',
             apply: (tower) => {
                 tower.hackRewardMultiplier = (tower.hackRewardMultiplier || 1) + 0.5;
@@ -483,7 +514,7 @@ const TOWER_UPGRADES = {
             tier: 4,
             name: 'System Override',
             description: 'Time to make the big bucks! Override controls to triple each round-start payout.',
-            cost: 63500,
+            cost: 30000,
             image: '/img/redditMod.png',
             apply: (tower) => {
                 tower.hackRewardMultiplier = (tower.hackRewardMultiplier || 1) * 3;
@@ -494,7 +525,7 @@ const TOWER_UPGRADES = {
             tier: 5,
             name: 'The Merkman',
             description: 'Wait, I know that guy! How did he get here? Merkert will periodically remove specail states from enemies',
-            cost: 50,
+            cost: 65000,
             image: '/img/merkman.png',
             apply: (tower) => {
                 tower.statusCleanseChance = Math.min(1, (tower.statusCleanseChance || 0) + 0.2);
@@ -566,8 +597,8 @@ const TOWER_UPGRADES = {
             id: 'chickenJockey',
             tier: 6,
             name: 'Chicken Jockey',
-            description: 'Chicken Jockeys! Peck your enemies eyes out. Increased spawn count and speed with Greater summon speed.',
-            cost: 50,
+            description: 'Chicken Jockeys! Peck your enemies eyes out. Increased spawn count and speed with less summon speed.',
+            cost: 10000,
             image: '/img/chickenJockey.png',
             apply: (tower) => {
                 tower.summonCount = (tower.summonCount || 1) + 1;
@@ -626,12 +657,12 @@ const TOWER_UPGRADES = {
             }
         },
         {
-            id: 'clusterBomb',
+            id: 'Boomer',
             tier: 5,
             name: 'Cluster Bomb',
-            description: 'Fire a wave of 5 rockets with increased damage.',
+            description: 'This old guy showed up to help. Fire a wave of 5 rockets with increased damage.',
             cost: 12000,
-            image: '/img/bomb.png',
+            image: '/img/boomer.png',
             apply: (tower) => {
                 tower.projectileCount = Math.max(tower.projectileCount, 5);
                 tower.damage += 3;
@@ -642,8 +673,8 @@ const TOWER_UPGRADES = {
             tier: 6,
             name: 'Cluster F***',
             description: 'Youre gonna want to get in a vault for this one! Whenever a bomb explodes release a ring of smaller bombs around the area. ',
-            cost: 50,
-            image: '/img/bomb.png',
+            cost: 20000,
+            image: '/img/vaultboy.png',
             apply: (tower) => {
                 tower.clusterOnExplosion = true;
                 tower.clusterCount = (tower.clusterCount || 0) + 8;
@@ -661,7 +692,7 @@ const TOWER_UPGRADES = {
             cost: 1300,
             image: '/img/gen.png',
             apply: (tower) => {
-                tower.regenSpeed = Math.max(1000, Math.round((tower.regenSpeed || 5000) * 0.85));
+                tower.regenSpeed = Math.max(1000, Math.round((tower.regenSpeed || 5000) * 0.75));
             }
         },
         {
@@ -682,7 +713,7 @@ const TOWER_UPGRADES = {
             id: 'enhancedBarrel',
             tier: 1,
             name: 'Enhanced Barrel',
-            description: 'An enhanced barrel that increases fire speed and less spread.',
+            description: 'An enhanced barrel that increases fire speed and better precision.',
             cost: 1000,
             image: '/img/burst.png',
             apply: (tower) => {
@@ -760,10 +791,10 @@ const TOWER_UPGRADES = {
         {
             id: 'spellweaving',
             tier: 1,
-            name: 'Spellweaving',
+            name: 'Storm Weaving',
             description: 'Cast faster and unlock Ice Storm, Earthquake, and Arcane Surge.',
             cost: 4000,
-            image: '/img/wizard.png',
+            image: '/img/shadowWizard.png',
             apply: (tower) => {
                 scaleFireRate(tower, 0.85, 80);
                 tower.spellCastRate = Math.max(1800, Math.round((tower.spellCastRate || 7000) * 0.8));
@@ -774,9 +805,9 @@ const TOWER_UPGRADES = {
             }
         },
         {
-            id: 'stormMastery',
+            id: 'untoldPower',
             tier: 2,
-            name: 'Storm Mastery',
+            name: 'Untold Power',
             description: 'Youve called upon magic from beyond your realm unlocking new spells and increasing spell duration and power.+',
             cost: 6000,
             image: '/img/magic.png',
@@ -787,6 +818,90 @@ const TOWER_UPGRADES = {
                 tower.spellLength = (tower.spellLength || 2000) + 1500;
                 tower.fog = true;
                 tower.doubleStrike = true;
+            }
+        }
+    ],
+    silly: [
+        {
+            id: 'stickySilly',
+            tier: 1,
+            name: 'Sticky Silly',
+            description: 'Enemies get stuck for longer and nearby enemies get caught in the mess.',
+            cost: 350,
+            image: '/img/sillyBilly.png',
+            apply: (tower) => {
+                tower.stunDuration = Math.max(2800, (tower.stunDuration || 0) + 700);
+                tower.stunRadius = Math.max(tower.stunRadius || 0, 24);
+            }
+        },
+        {
+            id: 'gooSplash',
+            tier: 2,
+            name: 'Goo Splash',
+            description: 'The stuck effect splashes to a wider area around the main target.',
+            cost: 700,
+            image: '/img/sillyBilly.png',
+            apply: (tower) => {
+                tower.stunRadius = (tower.stunRadius || 0) + 18;
+                tower.range += 10;
+            }
+        },
+        {
+            id: 'toxicTickle',
+            tier: 3,
+            name: 'Toxic Tickle',
+            description: 'Adds poison damage over time to every enemy the silly tower sticks.',
+            cost: 1400,
+            image: '/img/sillyBilly.png',
+            apply: (tower) => {
+                tower.poisonDamage = (tower.poisonDamage || 0) + 1;
+                tower.poisonDuration = Math.max(tower.poisonDuration || 0, 3500);
+                tower.poisonTickRate = Math.max(250, (tower.poisonTickRate || 500) - 100);
+            }
+        },
+        {
+            id: 'hazmatHysteria',
+            tier: 4,
+            name: 'Hazmat Hysteria',
+            description: 'More poison damage and a larger stuck radius with a faster firing rhythm.',
+            cost: 2900,
+            image: '/img/sillyBilly.png',
+            apply: (tower) => {
+                tower.poisonDamage = (tower.poisonDamage || 0) + 2;
+                tower.poisonDuration = Math.max(tower.poisonDuration || 0, 5000);
+                tower.stunRadius = (tower.stunRadius || 0) + 24;
+                scaleFireRate(tower, 0.85, 120);
+            }
+        },
+        {
+            id: 'laughingGas',
+            tier: 5,
+            name: 'Laughing Gas',
+            description: 'Enemies stay stuck longer, poison harder, and the radius expands even more.',
+            cost: 5200,
+            image: '/img/sillyBilly.png',
+            apply: (tower) => {
+                tower.stunDuration = Math.max(tower.stunDuration || 0, 4500);
+                tower.stunRadius = (tower.stunRadius || 0) + 20;
+                tower.poisonDamage = (tower.poisonDamage || 0) + 2;
+                tower.poisonTickRate = Math.max(180, (tower.poisonTickRate || 500) - 80);
+            }
+        },
+        {
+            id: 'ultimateSilly',
+            tier: 6,
+            name: 'Ultimate Silly Billy',
+            description: 'Big sticky radius, strong poison, and constant enemy lockdown.',
+            cost: 10000,
+            image: '/img/sillyBilly.png',
+            apply: (tower) => {
+                tower.damage += 2;
+                tower.stunDuration = Math.max(tower.stunDuration || 0, 5200);
+                tower.stunRadius = (tower.stunRadius || 0) + 28;
+                tower.poisonDamage = (tower.poisonDamage || 0) + 3;
+                tower.poisonDuration = Math.max(tower.poisonDuration || 0, 6500);
+                tower.poisonTickRate = Math.max(140, (tower.poisonTickRate || 500) - 120);
+                scaleFireRate(tower, 0.8, 90);
             }
         }
     ],
@@ -876,6 +991,10 @@ class Tower {
 
         this.stunChance = def.stunChance || 0;
         this.stunDuration = def.stunDuration || 0;
+        this.stunRadius = def.stunRadius || 0;
+        this.poisonDamage = def.poisonDamage || 0;
+        this.poisonDuration = def.poisonDuration || 0;
+        this.poisonTickRate = def.poisonTickRate || 0;
 
         this.fireball = !!def.fireball;
         this.arcaneSurge = !!def.arcaneSurge;
@@ -907,7 +1026,10 @@ class Tower {
     getAvailableUpgrades() {
         const options = TOWER_UPGRADES[this.type] || [];
         return options
-            .filter(upgrade => !this.appliedUpgradeIds.includes(upgrade.id))
+            .filter(upgrade => {
+                if (upgrade.id === 'luckyCharm') return true;
+                return !this.appliedUpgradeIds.includes(upgrade.id);
+            })
             .sort((a, b) => a.tier - b.tier);
     }
 
@@ -923,6 +1045,10 @@ class Tower {
         if (!upgrade) return null;
 
         upgrade.apply(this);
+        if (upgrade.id !== 'luckyCharm') {
+            this.appliedUpgradeIds.push(upgrade.id);
+        }
+        this.totalSpent += Number.isFinite(upgrade.cost) ? upgrade.cost : 0;
         this.appliedUpgradeIds.push(upgrade.id);
 
         // 🎸 Special handling for Grohl's "Everything you have and more" upgrade
@@ -937,6 +1063,10 @@ class Tower {
             this.currentUpgradeImage = upgrade.image;
         }
         this.level += 1;
+
+        if (this.type === 'gambler' && this.level >= 10) {
+            this.currentUpgradeImage = '/img/gamblerUpgrade.png';
+        }
         return upgrade;
     }
 
@@ -950,6 +1080,10 @@ class Tower {
     }
 
     getMaxLevelImagePath() {
+        if (this.type === 'gambler' && this.level >= 10) {
+            return '/img/gamblerUpgrade.png';
+        }
+
         if (this.currentUpgradeImage) return this.currentUpgradeImage;
 
         const upgrades = TOWER_UPGRADES[this.type] || [];
@@ -1056,6 +1190,10 @@ class Tower {
             bullet.damageReinforced = !!this.damageReinforced;
             bullet.stunChance = this.stunChance || 0;
             bullet.stunDuration = this.stunDuration || 0;
+            bullet.stunRadius = this.stunRadius || 0;
+            bullet.poisonDamage = this.poisonDamage || 0;
+            bullet.poisonDuration = this.poisonDuration || 0;
+            bullet.poisonTickRate = this.poisonTickRate || 0;
             bullet.clusterOnExplosion = !!this.clusterOnExplosion;
             bullet.clusterCount = this.clusterCount || 0;
 
@@ -1179,6 +1317,32 @@ class Tower {
                     ctx.fill();
                     ctx.restore();
                 };
+            } else if (this.type === 'bomber') {
+                bullet.width = 12;
+                bullet.height = 12;
+                bullet.render = function(ctx) {
+                    const centerX = this.x + this.width / 2;
+                    const centerY = this.y + this.height / 2;
+
+                    ctx.save();
+                    ctx.fillStyle = '#2f2f2f';
+                    ctx.beginPath();
+                    ctx.arc(centerX, centerY, this.width * 0.48, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.fillStyle = '#ffb74d';
+                    ctx.beginPath();
+                    ctx.arc(centerX + 2, centerY - 4, 2.2, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.moveTo(centerX + 1, centerY - 6);
+                    ctx.lineTo(centerX + 4, centerY - 10);
+                    ctx.stroke();
+                    ctx.restore();
+                };
             }
 
             // Special handling for bomber projectiles
@@ -1191,8 +1355,8 @@ class Tower {
                 bullet.maxFallSpeed = this.projectileSpeed * 1.2;
             }
 
-            if (!isRailLaser) {
-                bullet.render = function (ctx) {
+            if (!isRailLaser && this.type !== 'bomber') {
+                bullet.render = function(ctx) {
                     ctx.fillStyle = this.towerColor || '#ffffff';
                     ctx.beginPath();
                     ctx.arc(this.x + this.width / 2, this.y + this.height / 2, this.width / 2, 0, Math.PI * 2);
@@ -1222,7 +1386,7 @@ class Tower {
         const cy = this.y + this.height / 2;
 
         // Range ring
-        if (this.showRange) {
+        if (this.showRange && Number.isFinite(this.range) && this.range > 0) {
             ctx.beginPath();
             ctx.arc(cx, cy, this.range, 0, Math.PI * 2);
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.18)';
@@ -1231,7 +1395,7 @@ class Tower {
         }
 
         // Maxed towers use their upgrade icon on-canvas.
-        const shouldDrawIcon = this.isMaxUpgradeLevel();
+        const shouldDrawIcon = this.isMaxUpgradeLevel() || (this.type === 'gambler' && this.level >= 10);
         const iconPath = shouldDrawIcon ? this.getMaxLevelImagePath() : null;
         const iconImage = iconPath ? getTowerImage(iconPath) : null;
         const canDrawIcon = !!(iconImage && iconImage.complete && iconImage.naturalWidth > 0);
