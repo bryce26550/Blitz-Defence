@@ -35,7 +35,7 @@ const TOWER_TYPES = {
         fireRate: 3000,
         color: '#2196F3',
         image: '/img/miku.png',
-        projectileCount: 1, 
+        projectileCount: 1,
         projectileSpeed: 0.8,
         width: 30,
         height: 30,
@@ -176,7 +176,7 @@ const TOWER_TYPES = {
         width: 30,
         height: 30,
         image: '/img/grohl.png'
-    }, 
+    },
     oppenheimer: {
         name: 'Oppenheimer',
         cost: 1,
@@ -192,7 +192,7 @@ const TOWER_TYPES = {
         pierce: 1,
         countdownDuration: 180000,
         countdownResetCost: 500
-    }, 
+    },
     renegade: {
         name: 'Renegade',
         cost: 750,
@@ -204,7 +204,7 @@ const TOWER_TYPES = {
         color: '#ff0000ff',
         width: 30,
         height: 30,
-        // image: '/img/renegade.png'
+        image: '/img/renegade.png',
         seeHidden: false,
         damageReinforced: false,
         sRange: 0,
@@ -950,7 +950,75 @@ const TOWER_UPGRADES = {
                 tower.damageReinforced = true;
             }
         }
+    ],
+    renegade: [
+        {
+            id: 'condensedShot',
+            tier: 1,
+            name: 'Condensed Shot',
+            description: 'Condense shot power to increase damage and destroy reinforced enemies, lose fire speed.',
+            cost: 2975,
+            image: '/img/renegade.png',
+            apply: (tower) => {
+                tower.damage += 2;
+                tower.damageReinforced = true;
+                tower.fireRate = 1600;
+            }
+        },
+        {
+            id: 'thermalSight',
+            tier: 2,
+            name: 'Thermal Sight',
+            description: 'Thermal sight allows renegade to see hidden enemies.',
+            cost: 6570,
+            image: '/img/renegade.png',
+            apply: (tower) => {
+                tower.seeHidden = true;
+            }
+        },
+        {
+            id: 'longShot',
+            tier: 3,
+            name: 'Long Shot',
+            description: 'Enhance blaster to shoot farther with more power.',
+            cost: 13140,
+            image: '/img/renegade.png',
+            apply: (tower) => {
+                tower.damage += 2;
+                tower.range += 60;
+            }
+        },
+        {
+            id: 'praxicBlade',
+            tier: 4,
+            name: 'Praxic Blade',
+            description: 'A stellar blade that cleaves through enemies in close range.',
+            cost: 23652,
+            image: '/img/renegade.png',
+            apply: (tower) => {
+                tower.sRange += 50;
+                tower.sATS += 650;
+                tower.sDMG += 3;
+            }
+        },
+        {
+            id: 'perfectForm',
+            tier: 5,
+            name: 'Perfect Form',
+            description: 'This is the power of a master.',
+            cost: 35478,
+            image: '/img/renegade.png',
+            apply: (tower) => {
+                tower.damage *= 2;
+                tower.range += 100;
+                tower.fireRate = Math.round(tower.fireRate / 1.5);
+                tower.sATS = Math.max(100, tower.sATS - 200);
+                tower.sDMG *= 3;
+                tower.sRange += 25;
+            }
+        }
     ]
+
 };
 
 const TOWER_IMAGE_CACHE = {};
@@ -1053,6 +1121,14 @@ class Tower {
         this.summonCooldown = this.summonSpeed;
         this.target = null;
         this.showRange = false;
+
+        // Sword/melee properties
+        this.sRange = def.sRange || 0;
+        this.sATS = def.sATS || 0;  // Sword attack speed
+        this.sDMG = def.sDMG || 0;
+        this.swordCooldown = 0;
+        this.swordActive = false;
+
     }
 
     getAvailableUpgrades() {
@@ -1136,6 +1212,7 @@ class Tower {
      */
     update(deltaTime, enemies) {
         this.fireCooldown = Math.max(0, this.fireCooldown - deltaTime);
+        this.swordCooldown = Math.max(0, this.swordCooldown - deltaTime);
 
         if (this.type === 'oppenheimer' && this.countdownDuration > 0 && !this.countdownExpired) {
             this.countdownRemaining = Math.max(0, (this.countdownRemaining || this.countdownDuration) - deltaTime);
@@ -1150,7 +1227,9 @@ class Tower {
 
         // Find the closest enemy within range
         this.target = null;
+        this.swordTarget = null;
         let closestDist = this.range;
+        let closestSwordDist = this.sRange;
         const cx = this.x + this.width / 2;
         const cy = this.y + this.height / 2;
 
@@ -1160,17 +1239,34 @@ class Tower {
             const dx = (enemy.x + (enemy.width || 0) / 2) - cx;
             const dy = (enemy.y + (enemy.height || 0) / 2) - cy;
             const dist = Math.sqrt(dx * dx + dy * dy);
+
+            // Check for sword range (priority for Renegade)
+            if (this.type === 'renegade' && this.sRange > 0 && dist <= this.sRange && dist < closestSwordDist) {
+                closestSwordDist = dist;
+                this.swordTarget = enemy;
+            }
+
+            // Check for bullet range
             if (dist <= this.range && dist < closestDist) {
                 closestDist = dist;
                 this.target = enemy;
             }
         });
 
+        // Renegade: prioritize sword when enemy is in sword range
+        if (this.type === 'renegade' && this.swordTarget) {
+            this.swordActive = true;
+            this.target = null; // Disable gun when sword is active
+        } else {
+            this.swordActive = false;
+        }
+
         if (this.type === 'sentinel' && !this.target) {
             this.burstShotsRemaining = 0;
             this.burstTotalShots = 0;
         }
     }
+
 
     /**
      * Fire bullets toward/around the current target.
@@ -1364,7 +1460,7 @@ class Tower {
             } else if (this.type === 'bomber') {
                 bullet.width = 12;
                 bullet.height = 12;
-                bullet.render = function(ctx) {
+                bullet.render = function (ctx) {
                     const centerX = this.x + this.width / 2;
                     const centerY = this.y + this.height / 2;
 
@@ -1400,7 +1496,7 @@ class Tower {
             }
 
             if (!isRailLaser && this.type !== 'bomber') {
-                bullet.render = function(ctx) {
+                bullet.render = function (ctx) {
                     ctx.fillStyle = this.towerColor || '#ffffff';
                     ctx.beginPath();
                     ctx.arc(this.x + this.width / 2, this.y + this.height / 2, this.width / 2, 0, Math.PI * 2);
@@ -1421,6 +1517,84 @@ class Tower {
                 this.burstTotalShots = 0;
             }
         }
+
+        return true;
+    }
+
+    swordAttack(game) {
+        if (!this.swordTarget || this.swordCooldown > 0 || this.sRange <= 0) return false;
+
+        this.swordCooldown = this.sATS;
+
+        const cx = this.x + this.width / 2;
+        const cy = this.y + this.height / 2;
+        const tx = this.swordTarget.x + (this.swordTarget.width || 0) / 2;
+        const ty = this.swordTarget.y + (this.swordTarget.height || 0) / 2;
+        const angle = Math.atan2(ty - cy, tx - cx);
+
+        // Create sword slash animation
+        if (game) {
+            game.spellAnimations.push({
+                type: 'swordSlash',
+                x: cx,
+                y: cy,
+                angle: angle,
+                radius: this.sRange,
+                life: 200 * (game.gameSpeed || 1),  // ← Adjust duration for game speed
+                maxLife: 200 * (game.gameSpeed || 1),
+                color: this.color
+            });
+
+        }
+
+        // Deal damage to all enemies in sword range
+        const allEnemies = game ? game.getAllEnemies() : [];
+        allEnemies.forEach(enemy => {
+            if (!enemy || enemy.hp <= 0) return;
+            const dx = (enemy.x + (enemy.width || 0) / 2) - cx;
+            const dy = (enemy.y + (enemy.height || 0) / 2) - cy;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist <= this.sRange) {
+                const enemyAngle = Math.atan2(dy, dx);
+                const angleDiff = Math.abs(((enemyAngle - angle + Math.PI) % (Math.PI * 2)) - Math.PI);
+
+                if (angleDiff <= Math.PI / 2) {
+                    // Deal damage
+                    enemy.takeDamage ? enemy.takeDamage(this.sDMG) : (enemy.hp -= this.sDMG);
+
+                    // Check if enemy died
+                    if (enemy.hp <= 0) {
+                        // Handle Smith cutscene if this is the final boss
+                        if (enemy.isFinalBoss && !game.smithCutsceneActive && !game.smithCutsceneResolved) {
+                            game.showSmithCutscene(enemy);
+                            return true; // Stop processing
+                        }
+
+                        // Award money
+                        if (enemy.worth) {
+                            game.addMoney(enemy.worth);
+                        }
+
+                        // Create explosion
+                        game.createExplosion(
+                            enemy.x + (enemy.width || 0) / 2,
+                            enemy.y + (enemy.height || 0) / 2
+                        );
+
+                        // Remove enemy from appropriate array
+                        const enemyArrays = [game.enemies, game.tanks, game.sprinters, game.bosses];
+                        for (let arr of enemyArrays) {
+                            const idx = arr.indexOf(enemy);
+                            if (idx > -1) {
+                                arr.splice(idx, 1);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        });
 
         return true;
     }
@@ -1449,6 +1623,15 @@ class Tower {
             ctx.arc(cx, cy, this.range, 0, Math.PI * 2);
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.18)';
             ctx.lineWidth = 1;
+            ctx.stroke();
+        }
+
+        // Sword range ring (for Renegade tower)
+        if (this.showRange && this.type === 'renegade' && this.sRange > 0) {
+            ctx.beginPath();
+            ctx.arc(cx, cy, this.sRange, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(255, 0, 0, 0.35)'; // Red color for sword
+            ctx.lineWidth = 2;
             ctx.stroke();
         }
 
@@ -1684,20 +1867,20 @@ class Tower {
             // }
 
             ctx.restore();
-        } else if (this.target) {
-            // Normal barrel rendering for other towers...
-            const tx = this.target.x + (this.target.width || 0) / 2;
-            const ty = this.target.y + (this.target.height || 0) / 2;
-            const angle = Math.atan2(ty - cy, tx - cx);
-            const barrelLen = this.width / 2 + 6;
+        } // else if (this.target) {
+        //     // Normal barrel rendering for other towers...
+        //     const tx = this.target.x + (this.target.width || 0) / 2;
+        //     const ty = this.target.y + (this.target.height || 0) / 2;
+        //     const angle = Math.atan2(ty - cy, tx - cx);
+        //     const barrelLen = this.width / 2 + 6;
 
-            ctx.strokeStyle = '#ffffff';
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            ctx.moveTo(cx, cy);
-            ctx.lineTo(cx + Math.cos(angle) * barrelLen, cy + Math.sin(angle) * barrelLen);
-            ctx.stroke();
-        }
+        //     ctx.strokeStyle = '#ffffff';
+        //     ctx.lineWidth = 3;
+        //     ctx.beginPath();
+        //     ctx.moveTo(cx, cy);
+        //     ctx.lineTo(cx + Math.cos(angle) * barrelLen, cy + Math.sin(angle) * barrelLen);
+        //     ctx.stroke();
+        // }
 
         if (this.type === 'oppenheimer' && this.countdownDuration > 0) {
             ctx.fillStyle = '#ffffff';

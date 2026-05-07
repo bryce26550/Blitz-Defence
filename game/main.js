@@ -20,7 +20,7 @@ function hidePayment() {
 }
 
 //Some don't work on intended or just need some touching up before being added to the shop
-const AVAILABLE_TOWER_SHOP_KEYS = new Set(['shooter', 'blaster', 'wizard', 'hacker', 'overlord', 'generator', 'sentinel', 'railgun', 'grohl', 'gambler', 'bomber', 'kid', 'oppenheimer', 'renegade']);
+const AVAILABLE_TOWER_SHOP_KEYS = new Set(['shooter', 'blaster', 'wizard', 'hacker', 'overlord', 'generator', 'sentinel', 'railgun', 'grohl', 'gambler', 'bomber', 'silly', 'oppenheimer', 'renegade']);
 
 async function checkTowerAvailability() {
     try {
@@ -2446,9 +2446,14 @@ class Game {
 
         this.placedTowers.forEach(tower => {
             tower.update(deltaTime, allEnemies);
+            // Handle sword attacks for Renegade
+            if (tower.type === 'renegade' && tower.swordActive) {
+                tower.swordAttack(this);
+            }
             const fired = tower.shoot(this.bullets);
             const hasOverdrive = tower.appliedUpgradeIds && tower.appliedUpgradeIds.includes('overdrive');
             const hasMaximumOverdrive = tower.appliedUpgradeIds && tower.appliedUpgradeIds.includes('plankton');
+
             const isMaxUpgradeShotTower = this.isMaxUpgradeShotTower(tower);
 
             if (fired && isMaxUpgradeShotTower && Math.random() < 0.01) {
@@ -4145,7 +4150,6 @@ class Game {
     takeDamage(amount) {
         this.sheild = Math.max(0, this.sheild - amount);
         this.playSound('playerHit')
-        console.log(`Base took ${amount} damage! Health: ${this.sheild}/${this.maxSheild}`);
 
         if (this.sheild <= 0) {
             this.gameOver();
@@ -4270,7 +4274,31 @@ class Game {
                 ctx.beginPath();
                 ctx.arc(anim.x, anim.y, radius * 0.75, 0, Math.PI * 2);
                 ctx.stroke();
+            } else if (anim.type === 'swordSlash') {
+                const progress = 1 - (anim.life / Math.max(1, anim.maxLife));
+                const alpha = Math.max(0, 1 - progress);
+
+                ctx.save();
+                ctx.translate(anim.x, anim.y);
+                ctx.rotate(anim.angle);
+
+                // Draw semicircle slash effect
+                ctx.strokeStyle = `rgba(255, 0, 0, ${0.8 * alpha})`;
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(0, 0, anim.radius * (0.8 + progress * 0.4), -Math.PI / 2, Math.PI / 2);
+                ctx.stroke();
+
+                // Inner glow
+                ctx.strokeStyle = `rgba(255, 100, 100, ${0.5 * alpha})`;
+                ctx.lineWidth = 6;
+                ctx.beginPath();
+                ctx.arc(0, 0, anim.radius * (0.8 + progress * 0.4), -Math.PI / 2, Math.PI / 2);
+                ctx.stroke();
+
+                ctx.restore();
             }
+
             ctx.restore();
         }
     }
