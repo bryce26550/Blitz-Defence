@@ -1,5 +1,6 @@
 # Blitz Defence
 
+Obama Tower coming soon.
 A browser-based wave defense game built with Node.js, Express, EJS, Socket.IO, SQLite, and the Canvas API.
 
 The current design focuses on a clean start menu, centered “How to Play” panel, payment gate, settings modal, and in-game wave defense. The player/hero customization UI has been removed from the visible layout and the README now reflects that streamlined experience.
