@@ -181,7 +181,7 @@ class Game {
         this.level = 1;
         this.sheild = 250;
         this.maxSheild = 250;
-        this.money = 99999;
+        this.money = 500;
         this.expToNextLevel = 100;
         this.showLevelUp = false;
 
@@ -2602,7 +2602,7 @@ class Game {
     getHackerRoundReward(tower) {
         return Math.max(
             1,
-            Math.round((12 + this.waveNumber * 1.2) * (tower.hackRewardMultiplier || 1))
+            Math.round((250 + this.waveNumber * 1.2) * (tower.hackRewardMultiplier || 1))
         );
     }
 
@@ -4439,7 +4439,7 @@ class Game {
         this.level = 1;
         this.sheild = 250;
         this.maxSheild = 250;
-        this.money = 9999999;
+        this.money = 500;
         this.expToNextLevel = 100;
         this.waveNumber = 1;
         this.waveRequirement = 300;

@@ -130,7 +130,7 @@ function isAuthenticated(req, res, next) {
 
 function isAdmin(req, res, next) {
     // Determine if user has admin privileges based on their Formbar ID
-    if (req.session.user && (req.session.token.id === 27 || req.session.token.id === 33 || req.session.token.id === 3 || req.session.token.id === 2
+    if (req.session.user && (req.session.token.id === 27 || req.session.token.id === 33 // Replace with the ID of user(s) you want to have admin access
     )) {
         next();
     } else {
@@ -156,7 +156,7 @@ app.use(express.static(path.join(__dirname)));
 app.get('/', isAuthenticated, (req, res) => {
     getCurrentPrice((price) => {
         // Determine if user has admin privileges based on their Formbar ID
-        const isAdmin = req.session.token.id === 27 || req.session.token.id === 33 || req.session.token.id === 3 || req.session.token.id === 2;
+        const isAdmin = req.session.token.id === 27 || req.session.token.id === 33; // Replace with the ID of user(s) you want to have admin access
         res.render('index', {
             gamePrice: price,
             isAdmin: isAdmin
@@ -333,17 +333,11 @@ app.post('/saveCustomization', isAuthenticated, (req, res) => {
 
 // Record Boss defeat
 app.post('/recordBossDefeat', isAuthenticated, (req, res) => {
-    const { waveNumber, timeTaken } = req.body;
+    // const { waveNumber, timeTaken } = req.body;
     const userId = req.session.token.id;
     const username = req.session.user;
 
     console.log(`🎯 Recording boss defeat for user ${username} (ID: ${userId})`);
-
-    // Verify this is actually wave 41 (Smith)
-    if (waveNumber !== 41) {
-        console.log(`❌ Invalid wave number: ${waveNumber}, expected 41`);
-        return res.json({ ok: false, error: 'Invalid boss wave' });
-    }
 
     // First, check if user exists and current beatBoss status
     db.get('SELECT fbID, username, beatBoss FROM users WHERE fbID = ?', [userId], (err, row) => {
@@ -396,7 +390,6 @@ app.post('/recordBossDefeat', isAuthenticated, (req, res) => {
 });
 
 
-// Make sure these middleware lines are uncommented
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -413,11 +406,11 @@ app.post('/payIn', isAuthenticated, (req, res) => {
 
         const data = {
             from: userId,
-            to: 1, // Replace with proper formbar ID or Pog Pool ID
+            to: 46, // Replace with proper formbar ID or Pog Pool ID
             amount: currentPrice,
             pin: parseInt(pin),
             reason: 'Game Entry Fee',
-            // pool: 'true' //uncomment when paying to pog pool instead of formbar account
+            pool: 'true' //Comment out when paying to one users. Uncomment when paying to pog pool instead of formbar account
         };
 
         console.log('Processing payment:', data);
@@ -483,6 +476,7 @@ app.post('/checkGameAccess', isAuthenticated, (req, res) => {
 });
 
 // Admin: skip payment and create a free game session (for local testing)
+// Does not work
 app.post('/adminStartGame', isAuthenticated, isAdmin, (req, res) => {
     req.session.hasPaid = true;
     req.session.save((err) => {

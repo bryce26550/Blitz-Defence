@@ -164,6 +164,24 @@ const TOWER_TYPES = {
         color: '#f7d36b',
         image: '/img/sillyBilly.png'
     },
+    renegade: {
+        name: 'Renegade',
+        cost: 750,
+        damage: 2,
+        fireRate: 1200,
+        range: 90,
+        projectileSpeed: 1,
+        projectileCount: 1,
+        color: '#ff0000ff',
+        width: 30,
+        height: 30,
+        image: '/img/renegade.png',
+        seeHidden: false,
+        damageReinforced: false,
+        sRange: 0,
+        sATS: 0,
+        sDMG: 0,
+    },
     grohl: {
         name: 'Dave Grohl',
         cost: 1,
@@ -193,24 +211,7 @@ const TOWER_TYPES = {
         countdownDuration: 180000,
         countdownResetCost: 500
     },
-    renegade: {
-        name: 'Renegade',
-        cost: 750,
-        damage: 2,
-        fireRate: 1200,
-        range: 90,
-        projectileSpeed: 1,
-        projectileCount: 1,
-        color: '#ff0000ff',
-        width: 30,
-        height: 30,
-        image: '/img/renegade.png',
-        seeHidden: false,
-        damageReinforced: false,
-        sRange: 0,
-        sATS: 0,
-        sDMG: 0,
-    }
+
 };
 
 function scaleFireRate(tower, factor, min = 60) {
@@ -245,7 +246,7 @@ const TOWER_UPGRADES = {
             tier: 2,
             name: 'Better Bullets',
             description: 'Higher caliber bullets with increased damage and puncture',
-            cost: 650,
+            cost: 750,
             image: '/img/scout.png',
             apply: (tower) => {
                 tower.damage += 1;
@@ -257,7 +258,7 @@ const TOWER_UPGRADES = {
             tier: 3,
             name: 'Good Goggles',
             description: 'Improved vision allows you to see farther and through stealth',
-            cost: 1200,
+            cost: 1450,
             image: '/img/scout.png',
             apply: (tower) => {
                 tower.range += 25;
@@ -269,7 +270,7 @@ const TOWER_UPGRADES = {
             tier: 4,
             name: 'Twin Fire',
             description: 'Double the gun, double the bullets, and double the fun.',
-            cost: 2450,
+            cost: 2750,
             image: '/img/scout.png',
             apply: (tower) => {
                 tower.projectileCount = Math.max(2, tower.projectileCount * 2);
@@ -283,7 +284,7 @@ const TOWER_UPGRADES = {
             tier: 5,
             name: 'Rapid Fire',
             description: 'Took a few gun saftey courses, more damage, more peirce, and much faster fire rate.',
-            cost: 5500,
+            cost: 5200,
             image: '/img/scout.png',
             apply: (tower) => {
                 tower.damage += 2;
@@ -296,7 +297,7 @@ const TOWER_UPGRADES = {
             tier: 6,
             name: 'TF2 Scout',
             description: 'THINK FAST CHUCKLENUTS! An aggressive and snarky fighter with even higher damage and fire rate. Chance to stun enemies on hit.',
-            cost: 10000,
+            cost: 9800,
             image: '/img/scout.png',
             apply: (tower) => {
                 tower.damage += 3;
@@ -312,7 +313,7 @@ const TOWER_UPGRADES = {
             tier: 1,
             name: 'Better Cooling',
             description: 'Improved cooling system allowing for slightlyfaster firing.',
-            cost: 325,
+            cost: 450,
             image: '/img/miku.png',
             apply: (tower) => {
                 scaleFireRate(tower, 0.9, 120);
@@ -323,7 +324,7 @@ const TOWER_UPGRADES = {
             tier: 2,
             name: 'High Caliber',
             description: 'Higher caliber bullets with the ability to rip through armor and deal increased damage and puncture',
-            cost: 650,
+            cost: 1300,
             image: '/img/miku.png',
             apply: (tower) => {
                 tower.damage += 3;
@@ -336,7 +337,7 @@ const TOWER_UPGRADES = {
             tier: 3,
             name: 'Overclocked',
             description: 'Improved firing mechanism allowing for more damage but slowing down the fire rate.',
-            cost: 1200,
+            cost: 2550,
             image: '/img/miku.png',
             apply: (tower) => {
                 tower.damage += 4;
@@ -348,7 +349,7 @@ const TOWER_UPGRADES = {
             tier: 4,
             name: 'Refraction',
             description: 'Advanced refractive lens technology that refracts into a multitude of smaller blasts.',
-            cost: 2450,
+            cost: 4900,
             image: '/img/miku.png',
             apply: (tower) => {
                 tower.refractionSplitCount = 2;
@@ -359,7 +360,7 @@ const TOWER_UPGRADES = {
             tier: 5,
             name: 'Ultimate Lazer',
             description: 'The ultimate laser weapon with an unstopable beam giving increased damage, puncture, but slowing fire rate.',
-            cost: 5500,
+            cost: 9300,
             image: '/img/miku.png',
             apply: (tower) => {
                 tower.damage += 8;
@@ -373,7 +374,7 @@ const TOWER_UPGRADES = {
             tier: 6,
             name: 'Miku Miku Beam',
             description: 'Miku Miku Beeeeeeaaammmm! Improves damage, attack speed, and gives infinite pierce/range.',
-            cost: 10000,
+            cost: 17100,
             image: '/img/miku.png',
             apply: (tower) => {
                 tower.damage += 10;
@@ -391,7 +392,7 @@ const TOWER_UPGRADES = {
             tier: 1,
             name: 'Fast Firing',
             description: 'Improved firing mechanism allowing for faster firing.',
-            cost: 325,
+            cost: 350,
             image: '/img/megaman.png',
             apply: (tower) => {
                 scaleFireRate(tower, 0.85, 100);
@@ -402,7 +403,7 @@ const TOWER_UPGRADES = {
             tier: 2,
             name: 'Strong Shells',
             description: 'Enhanced shells that deal more damage and hit more enemies.',
-            cost: 650,
+            cost: 950,
             image: '/img/megaman.png',
             apply: (tower) => {
                 tower.damage += 1;
@@ -414,7 +415,7 @@ const TOWER_UPGRADES = {
             tier: 3,
             name: 'Sturdy Frame',
             description: 'A more robust frame that can handle increased stress. Increases damage and bullet count',
-            cost: 1200,
+            cost: 1750,
             image: '/img/megaman.png',
             apply: (tower) => {
                 tower.damage += 1;
@@ -427,7 +428,7 @@ const TOWER_UPGRADES = {
             tier: 4,
             name: 'Short Circuit',
             description: 'A short circuit in the firing mechanism causes enhanced range and damage, but reduces fire rate.',
-            cost: 2450,
+            cost: 3350,
             image: '/img/megaman.png',
             apply: (tower) => {
                 tower.damage += 1;
@@ -440,7 +441,7 @@ const TOWER_UPGRADES = {
             tier: 5,
             name: 'Overdrive',
             description: 'Time to take this puppy into overdrive. Increased damage and pierce, and a faster fire rate.',
-            cost: 5500,
+            cost: 6250,
             image: '/img/megaman.png',
             apply: (tower) => {
                 tower.damage += 3;
@@ -453,7 +454,7 @@ const TOWER_UPGRADES = {
             tier: 6,
             name: 'Maximum Overdrive',
             description: 'Im shifting into MAXIMUM OVERDRIVE! Increased fire rate, range, and projectile count.',
-            cost: 10000,
+            cost: 11800,
             image: '/img/planktonOverdrive.png',
             apply: (tower) => {
                 scaleFireRate(tower, 0.6, 70);
@@ -506,7 +507,7 @@ const TOWER_UPGRADES = {
             tier: 1,
             name: 'Swift Skills',
             description: 'Improved hacking skills for a stronger payout at round start.',
-            cost: 1325,
+            cost: 1500,
             image: '/img/redditMod.png',
             apply: (tower) => {
                 tower.hackRewardMultiplier = (tower.hackRewardMultiplier || 1) + 0.35;
@@ -517,7 +518,7 @@ const TOWER_UPGRADES = {
             tier: 2,
             name: 'Hacker Knowledge',
             description: 'Enhanced abilities allow for deeper system access. Make some more money per hack.',
-            cost: 4000,
+            cost: 4600,
             image: '/img/redditMod.png',
             apply: (tower) => {
                 tower.hackRewardMultiplier = (tower.hackRewardMultiplier || 1) + 0.5;
@@ -528,7 +529,7 @@ const TOWER_UPGRADES = {
             tier: 3,
             name: 'Malware Expert',
             description: 'Advanced malware allows deeper exploits and doubles each round-start payout.',
-            cost: 15000,
+            cost: 10200,
             image: '/img/redditMod.png',
             apply: (tower) => {
                 tower.hackRewardMultiplier = (tower.hackRewardMultiplier || 1) * 2;
@@ -539,7 +540,7 @@ const TOWER_UPGRADES = {
             tier: 4,
             name: 'System Override',
             description: 'Time to make the big bucks! Override controls to triple each round-start payout.',
-            cost: 30000,
+            cost: 19600,
             image: '/img/redditMod.png',
             apply: (tower) => {
                 tower.hackRewardMultiplier = (tower.hackRewardMultiplier || 1) * 3;
@@ -550,7 +551,7 @@ const TOWER_UPGRADES = {
             tier: 5,
             name: 'The Merkman',
             description: 'Wait, I know that guy! How did he get here? Merkert will periodically remove specail states from enemies',
-            cost: 65000,
+            cost: 35200,
             image: '/img/merkman.png',
             apply: (tower) => {
                 tower.statusCleanseChance = Math.min(1, (tower.statusCleanseChance || 0) + 0.2);
@@ -564,7 +565,7 @@ const TOWER_UPGRADES = {
             tier: 1,
             name: 'Swift Summon',
             description: 'Summons enemies more quickly and in greater numbers.',
-            cost: 850,
+            cost: 1000,
             image: '/img/chickenJockey.png',
             apply: (tower) => {
                 tower.summonSpeed = Math.max(1200, Math.round((tower.summonSpeed || 2500) * 0.92));
@@ -576,7 +577,7 @@ const TOWER_UPGRADES = {
             tier: 2,
             name: 'Strong Summons',
             description: 'Summoned enemies are move with haste and are more powerful.',
-            cost: 1900,
+            cost: 2900,
             image: '/img/chickenJockey.png',
             apply: (tower) => {
                 tower.summonDamageMultiplier = (tower.summonDamageMultiplier || 1) + 0.2;
@@ -588,7 +589,7 @@ const TOWER_UPGRADES = {
             tier: 3,
             name: 'Greater Summons',
             description: 'Summon enemis in even greater numbers and some have increased speed.',
-            cost: 3500,
+            cost: 6100,
             image: '/img/chickenJockey.png',
             apply: (tower) => {
                 tower.summonCount = (tower.summonCount || 1) + 1;
@@ -600,7 +601,7 @@ const TOWER_UPGRADES = {
             tier: 4,
             name: 'Big Bad fella',
             description: 'Summons a boss among your minions.',
-            cost: 3500,
+            cost: 10400,
             image: '/img/chickenJockey.png',
             apply: (tower) => {
                 tower.summonBossChance = Math.min(1, (tower.summonBossChance || 0) + 0.15);
@@ -611,7 +612,7 @@ const TOWER_UPGRADES = {
             tier: 5,
             name: 'Horde Army',
             description: 'Summons a horde of enemies to overwhelm your foes. Spawn count is doubled but less frequent.',
-            cost: 7500,
+            cost: 18400,
             image: '/img/chickenJockey.png',
             apply: (tower) => {
                 tower.summonCount = (tower.summonCount || 1) * 2;
@@ -623,7 +624,7 @@ const TOWER_UPGRADES = {
             tier: 6,
             name: 'Chicken Jockey',
             description: 'Chicken Jockeys! Peck your enemies eyes out. Increased spawn count and speed with less summon speed.',
-            cost: 10000,
+            cost: 30800,
             image: '/img/chickenJockey.png',
             apply: (tower) => {
                 tower.summonCount = (tower.summonCount || 1) + 1;
@@ -638,7 +639,7 @@ const TOWER_UPGRADES = {
             tier: 1,
             name: 'Heavy Payload',
             description: 'Big boom hehe. Increased area and damage.',
-            cost: 650,
+            cost: 850,
             image: '/img/bomb.png',
             apply: (tower) => {
                 tower.damage += 2;
@@ -650,7 +651,7 @@ const TOWER_UPGRADES = {
             tier: 2,
             name: 'Laser Guidance',
             description: 'A laser guidance system that allows for more accurate range.',
-            cost: 1500,
+            cost: 1750,
             image: '/img/bomb.png',
             apply: (tower) => {
                 tower.range += 20;
@@ -662,7 +663,7 @@ const TOWER_UPGRADES = {
             tier: 3,
             name: 'Fast Reload',
             description: 'Reloads quicker for more destruction faster.',
-            cost: 4000,
+            cost: 3950,
             image: '/img/bomb.png',
             apply: (tower) => {
                 scaleFireRate(tower, 0.8, 90);
@@ -673,7 +674,7 @@ const TOWER_UPGRADES = {
             tier: 4,
             name: 'Aerodynamic Shells',
             description: 'Improved aerodynamics for faster firing and piercing.',
-            cost: 9800,
+            cost: 7600,
             image: '/img/bomb.png',
             apply: (tower) => {
                 scaleFireRate(tower, 0.85, 80);
@@ -686,7 +687,7 @@ const TOWER_UPGRADES = {
             tier: 5,
             name: 'Cluster Bomb',
             description: 'This old guy showed up to help. Fire a wave of 5 rockets with increased damage.',
-            cost: 12000,
+            cost: 13700,
             image: '/img/boomer.png',
             apply: (tower) => {
                 tower.projectileCount = Math.max(tower.projectileCount, 5);
@@ -698,7 +699,7 @@ const TOWER_UPGRADES = {
             tier: 6,
             name: 'Cluster F***',
             description: 'Youre gonna want to get in a vault for this one! Whenever a bomb explodes release a ring of smaller bombs around the area. ',
-            cost: 20000,
+            cost: 23100,
             image: '/img/vaultboy.png',
             apply: (tower) => {
                 tower.clusterOnExplosion = true;
@@ -714,7 +715,7 @@ const TOWER_UPGRADES = {
             tier: 1,
             name: 'Swift Generation',
             description: 'You equiped gen rush perks and now gens activate twice as often.',
-            cost: 1300,
+            cost: 1500,
             image: '/img/gen.png',
             apply: (tower) => {
                 tower.regenSpeed = Math.max(1000, Math.round((tower.regenSpeed || 5000) * 0.75));
@@ -725,7 +726,7 @@ const TOWER_UPGRADES = {
             tier: 2,
             name: 'Improved Alloy',
             description: 'A stronger alloy and circuits that allows it to generate better shields and have more max shield capacity.',
-            cost: 2600,
+            cost: 3500,
             image: '/img/gen.png',
             apply: (tower) => {
                 tower.regenAmount = (tower.regenAmount || 0) + 15;
@@ -739,7 +740,7 @@ const TOWER_UPGRADES = {
             tier: 1,
             name: 'Enhanced Barrel',
             description: 'An enhanced barrel that increases fire speed and better precision.',
-            cost: 1000,
+            cost: 950,
             image: '/img/burst.png',
             apply: (tower) => {
                 scaleFireRate(tower, 0.9, 70);
@@ -752,7 +753,7 @@ const TOWER_UPGRADES = {
             tier: 2,
             name: 'Reinforced Plating',
             description: 'Could always use more protection. pierce and damage increase.',
-            cost: 1500,
+            cost: 2050,
             image: '/img/burst.png',
             apply: (tower) => {
                 addPierce(tower, 1);
@@ -764,7 +765,7 @@ const TOWER_UPGRADES = {
             tier: 3,
             name: 'AP Rounds',
             description: 'Armor-piercing rounds that deal increased damage to heavily armored targets.',
-            cost: 2000,
+            cost: 3650,
             image: '/img/burst.png',
             apply: (tower) => {
                 tower.damageReinforced = true;
@@ -778,11 +779,12 @@ const TOWER_UPGRADES = {
             tier: 4,
             name: 'Hypersonic Core',
             description: 'A hypersonic core that increases fire rate and less spread.',
-            cost: 2500,
+            cost: 6100,
             image: '/img/burst.png',
             apply: (tower) => {
                 scaleFireRate(tower, 0.75, 60);
                 tightenSpread(tower, 0.75);
+                tower.seeHidden = true;
             }
         },
         {
@@ -790,7 +792,7 @@ const TOWER_UPGRADES = {
             tier: 5,
             name: 'Double Tap',
             description: 'Fires two more bullets in the burst with faster fire rate.',
-            cost: 5000,
+            cost: 9750,
             image: '/img/burst.png',
             apply: (tower) => {
                 tower.projectileCount += 2;
@@ -802,7 +804,7 @@ const TOWER_UPGRADES = {
             tier: 6,
             name: 'Gun from Fortnite',
             description: 'Hey thats that one thing from that one game. Less spread, one more bullet in burst, faster fire rate.',
-            cost: 10000,
+            cost: 15100,
             image: '/img/burst.png',
             apply: (tower) => {
                 tower.projectileCount += 1;
@@ -818,7 +820,7 @@ const TOWER_UPGRADES = {
             tier: 1,
             name: 'Storm Weaving',
             description: 'Cast faster and unlock Ice Storm, Earthquake, and Arcane Surge.',
-            cost: 4000,
+            cost: 4500,
             image: '/img/shadowWizard.png',
             apply: (tower) => {
                 scaleFireRate(tower, 0.85, 80);
@@ -834,7 +836,7 @@ const TOWER_UPGRADES = {
             tier: 2,
             name: 'Untold Power',
             description: 'Youve called upon magic from beyond your realm unlocking new spells and increasing spell duration and power.+',
-            cost: 6000,
+            cost: 8200,
             image: '/img/magic.png',
             apply: (tower) => {
                 tower.damage += 1;
@@ -864,7 +866,7 @@ const TOWER_UPGRADES = {
             tier: 2,
             name: 'Goo Splash',
             description: 'The stuck effect splashes to a wider area around the main target.',
-            cost: 700,
+            cost: 760,
             image: '/img/sillyBilly.png',
             apply: (tower) => {
                 tower.stunRadius = (tower.stunRadius || 0) + 18;
@@ -876,7 +878,7 @@ const TOWER_UPGRADES = {
             tier: 3,
             name: 'Toxic Tickle',
             description: 'Adds poison damage over time to every enemy the silly tower sticks.',
-            cost: 1400,
+            cost: 1600,
             image: '/img/sillyBilly.png',
             apply: (tower) => {
                 tower.poisonDamage = (tower.poisonDamage || 0) + 1;
@@ -889,7 +891,7 @@ const TOWER_UPGRADES = {
             tier: 4,
             name: 'Hazmat Hysteria',
             description: 'More poison damage and a larger stuck radius with a faster firing rhythm.',
-            cost: 2900,
+            cost: 3150,
             image: '/img/sillyBilly.png',
             apply: (tower) => {
                 tower.poisonDamage = (tower.poisonDamage || 0) + 2;
@@ -903,7 +905,7 @@ const TOWER_UPGRADES = {
             tier: 5,
             name: 'Laughing Gas',
             description: 'Enemies stay stuck longer, poison harder, and the radius expands even more.',
-            cost: 5200,
+            cost: 5650,
             image: '/img/sillyBilly.png',
             apply: (tower) => {
                 tower.stunDuration = Math.max(tower.stunDuration || 0, 4500);
@@ -917,7 +919,7 @@ const TOWER_UPGRADES = {
             tier: 6,
             name: 'Ultimate Silly Billy',
             description: 'Big sticky radius, strong poison, and constant enemy lockdown.',
-            cost: 10000,
+            cost: 9600,
             image: '/img/sillyBilly.png',
             apply: (tower) => {
                 tower.damage += 2;
@@ -993,7 +995,7 @@ const TOWER_UPGRADES = {
             tier: 4,
             name: 'Praxic Blade',
             description: 'A stellar blade that cleaves through enemies in close range.',
-            cost: 23652,
+            cost: 23650,
             image: '/img/renegade.png',
             apply: (tower) => {
                 tower.sRange += 50;
@@ -1006,7 +1008,7 @@ const TOWER_UPGRADES = {
             tier: 5,
             name: 'Perfect Form',
             description: 'This is the power of a master.',
-            cost: 35478,
+            cost: 35450,
             image: '/img/renegade.png',
             apply: (tower) => {
                 tower.damage *= 2;
@@ -1153,31 +1155,27 @@ class Tower {
         if (!upgrade) return null;
 
         upgrade.apply(this);
+
         if (upgrade.id !== 'luckyCharm') {
             this.appliedUpgradeIds.push(upgrade.id);
         }
-        this.totalSpent += Number.isFinite(upgrade.cost) ? upgrade.cost : 0;
-        this.appliedUpgradeIds.push(upgrade.id);
 
-        // 🎸 Special handling for Grohl's "Everything you have and more" upgrade
-        if (this.type === 'grohl' && upgrade.id === 'sacrifice') {
-            // Don't add the string cost to totalSpent
-            this.totalSpent += 0;
-        } else {
-            this.totalSpent += Number.isFinite(upgrade.cost) ? upgrade.cost : 0;
+        if (Number.isFinite(upgrade.cost)) {
+            this.totalSpent += upgrade.cost;
         }
 
         if (upgrade.image) {
             this.currentUpgradeImage = upgrade.image;
         }
+
         this.level += 1;
 
         if (this.type === 'gambler' && this.level >= 10) {
             this.currentUpgradeImage = '/img/gamblerUpgrade.png';
         }
+
         return upgrade;
     }
-
 
     getSellValue() {
         return Math.floor(this.totalSpent * 0.63);
