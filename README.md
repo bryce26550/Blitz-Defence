@@ -138,5 +138,5 @@ Then open the app in your browser on the configured port.
 
 - The repository is designed around Formbar classroom authentication and Digipogs payment flow.
 - If you change the game design again, update the README feature list and controls section to match the active UI.
-- Donald Garciua is **BANNED** from developing or suggesting ideas for Blitz Defence.
+- Donald Garcia is **BANNED** from developing or suggesting ideas for Blitz Defence.
 
