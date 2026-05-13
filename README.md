@@ -14,16 +14,49 @@ The current design focuses on a clean start menu, centered “How to Play” pan
 - Shield-based survival system
 
 ### Enemies
-- Basic enemies
-- Tanks
-- Sprinters
-- Boss
+- **Basic Enemies**: Standard units with 3 tiers
+  - Enemy1: Fast, low health
+  - Enemy2: Balanced speed and health
+  - Enemy3: Slower, higher health
+- **Tanks**: Heavy armor units with 3 tiers
+  - Tank1: Low speed, moderate health
+  - Tank2: Medium speed, higher health
+  - Tank3: Slow but extremely durable
+- **Sprinters**: High-speed units with 3 tiers
+  - Sprinter1: Fast, fragile
+  - Sprinter2: Faster, moderate health
+  - Sprinter3: Fastest, low health
+- **Shooter Enemies**: Ranged units with variants
+  - Shooter1, Shooter2, Shooter3: Attack towers while moving
+- **Boss Enemies**: Special bosses with 3 tiers
+  - Boss1: Initial boss encounter
+  - Boss2: Mid-game powerful boss
+  - Boss3: Final boss encounter
+
+### Enemy Enhancements
+- **Fortified**: Enhanced armor and health, appears stronger visually
+- **Hidden**: Temporarily cloaked, partial visibility
+- **Glitched**: Erratic movement, visual distortion effects
+
+### Tower System
+- **6 tower types** with distinct mechanics
+- **Upgrade system**: Each tower supports multiple upgrade paths
+- **Card-based shop UI**: Select and upgrade towers with visual feedback
+- **Currency generation**: Earn gold from defeating enemies and completing waves
+
+### Wave Progression
+- **41+ procedurally generated waves** with increasing difficulty
+- **6 progression phases** with evolving enemy compositions
+- **Endless mode**: Continue playing beyond wave 41
+- **Dynamic difficulty**: Enemy health, armor, and speed scale with wave number
 
 ### UI and systems
 - Centered start menu instructions with a map selector button
 - Payment overlay for game entry
 - Settings modal for wave start mode, tooltips, and sound
 - Admin panel for game price control
+- Boss health bar display during boss encounters
+- Real-time wave progression tracking
 - SQLite-backed session and settings storage
 - Formbar authentication integration
 
@@ -105,4 +138,5 @@ Then open the app in your browser on the configured port.
 
 - The repository is designed around Formbar classroom authentication and Digipogs payment flow.
 - If you change the game design again, update the README feature list and controls section to match the active UI.
+- Donald Garciea is **BANED** from developing or suggesting ideas for Blitz Defence.
 
